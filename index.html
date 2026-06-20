@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <title>İneklerim Nerede - Bulut Kontrol Paneli</title>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Harita ve İkon Kütüphaneleri -->
+    <script src='https://unpkg.com/leaflet/dist/leaflet.js'></script>
+    <link rel='stylesheet' href='https://unpkg.com/leaflet/dist/leaflet.css' />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK v8 (CDN - En Stabil Tek Dosya Yapısı) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            margin: auto;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+            margin: 10px 0px 20px 0px;
+        }
+
+        /* Giriş Paneli Tasarımı */
+        #login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Orijinal Panel Tasarımları */
+        #main-dashboard {
+            display: none; /* Giriş yapılana kadar gizli */
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .notification-bar {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            padding: 8px 20px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 2px solid #d0d0d0;
+            min-height: 30px;
+            gap: 10px;
+            flex-wrap: nowrap;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 600px) {
+            body { margin: 2px; }
+            .container { padding: 10px; max-width: 100%; }
+            .notification-bar { font-size: 11px; padding: 4px 10px; }
+        }
+
+        .group { display: flex; align-items: center; gap: 4px; width: 60px; justify-content: flex-end; }
+        .group2 { display: flex; align-items: center; gap: 8px; width: 40px; justify-content: flex-end; }
+        .group3 { display: flex; align-items: center; gap: 8px; width: 100px; }
+
+        .device-name-label_red { color: #444; background: linear-gradient(to right, #ff6b6b, #ff8787); padding: 2px 6px; border-radius: 8px; font-weight: 600; font-size: 12px; }
+        .device-name-label_green { color: #444; background: linear-gradient(to right, #32FF88, #33FF60); padding: 2px 6px; border-radius: 8px; font-weight: 600; font-size: 12px; }
+        .cow-icon_red { color: #FF5733; font-size: 20px; }
+        .cow-icon_green { color: #33FF57; font-size: 20px; }
+
+        .battery { width: 20px; height: 12px; border: 2px solid #2f3542; border-radius: 3px; position: relative; background: rgba(47, 53, 66, 0.1); }
+        .battery::after { content: ""; position: absolute; right: -5px; top: 3px; width: 3px; height: 6px; background: #2f3542; border-radius: 1px; }
+        .battery-level { background: #2ed573; height: 100%; width: 0%; transition: width 0.3s ease; }
+
+        .signal-bars { display: flex; gap: 2px; align-items: flex-end; height: 16px; }
+        .signal-bars div { width: 4px; background: #2ed573; border-radius: 2px; }
+        .time, .signal-value { color: #2f3542; font-weight: 600; }
+
+        .card-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); overflow: hidden; }
+        .card-header { background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 15px; display: flex; align-items: center; gap: 10px; }
+        .card-header h3 { margin: 0; font-size: 18px; }
+        .card-body { padding: 15px; }
+
+        .input-group { display: flex; align-items: center; margin-bottom: 15px; }
+        .input-group label { width: 85px; font-weight: 600; color: #555; font-size: 13px; flex-shrink: 0; }
+        .input-group input, .mode-select { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+
+        .btn-save, .btn-action, .btn-danger { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; color: white; }
+        .btn-save { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .btn-action { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .btn-danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        
+        .map-controls { position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 5px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); }
+        .map-controls button { padding: 5px 10px; margin: 2px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .status-message { margin-top: 15px; padding: 10px; display: none; border-radius: 4px; text-align: center; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+
+<body>
+
+    <!-- GİRİŞ EKRANI -->
+    <div id="login-container">
+        <h2 style="text-align: center; color: #2c3e50;">Sistem Girişi</h2>
+        <input type="email" id="login-email" class="login-input" placeholder="E-posta Adresi (admin@domain.com)">
+        <input type="password" id="login-password" class="login-input" placeholder="Şifre">
+        <button onclick="loginUser()" class="btn-action" style="margin-top: 15px;">Giriş Yap</button>
+        <div id="login-error" style="color: red; text-align: center; margin-top: 10px; font-size: 13px;"></div>
+    </div>
+
+    <!-- ANA PANEL -->
+    <div id="main-dashboard" class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>İneklerim Nerede - Bulut Kontrol</h1>
+            <button onclick="logoutUser()" class="btn-danger" style="width: auto; padding: 5px 15px; margin-bottom: 10px;">Çıkış</button>
+        </div>
+
+        <!-- CİHAZ 1001 PANELİ -->
+        <div class="notification-bar" id="device-1001">
+            <div class="group3">
+                <i class="fas fa-cow cow-icon_red"></i>
+                <div class="device-name-label_red" id="lbl-name1">İnek 1001</div>
+            </div>
+            <div class="group2"><span class="time" id="time-1001">--:--</span></div>
+            <div class="group2"><span class="time" id="temp-1001">--°C</span></div>
+            <div class="group">
+                <span class="time" id="bat-val-1001">%--</span>
+                <div class="battery"><div class="battery-level" id="bat-bar-1001"></div></div>
+            </div>
+            <div class="group">
+                <span class="signal-value" id="rssi-1001">--</span>
+                <div class="signal-bars" id="rssi-bars-1001">
+                    <div style="height: 25%"></div><div style="height: 50%"></div><div style="height: 75%"></div><div style="height: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CİHAZ 1002 PANELİ -->
+        <div class="notification-bar" id="device-1002">
+            <div class="group3">
+                <i class="fas fa-cow cow-icon_green"></i>
+                <div class="device-name-label_green" id="lbl-name2">İnek 1002</div>
+            </div>
+            <div class="group2"><span class="time" id="time-1002">--:--</span></div>
+            <div class="group2"><span class="time" id="temp-1002">--°C</span></div>
+            <div class="group">
+                <span class="time" id="bat-val-1002">%--</span>
+                <div class="battery"><div class="battery-level" id="bat-bar-1002"></div></div>
+            </div>
+            <div class="group">
+                <span class="signal-value" id="rssi-1002">--</span>
+                <div class="signal-bars" id="rssi-bars-1002">
+                    <div style="height: 25%"></div><div style="height: 50%"></div><div style="height: 75%"></div><div style="height: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EV ALICI İSTASYON PANELİ -->
+        <div class="notification-bar" id="home-panel">
+            <div class="group3">
+                <i class="fas fa-home" style="color: #fff; font-size: 15px; background-color: #3498db; border-radius: 50%; padding: 5px;"></i>
+                <div style="color: #444; background: linear-gradient(to right, #3498db, #2980b9); padding: 2px 6px; border-radius: 8px; font-weight: 600; font-size: 12px;">Ev</div>
+            </div>
+            <div class="group2"><span class="time" id="home-time">--:--</span></div>
+            <div class="group2"><span class="time" id="home-temp">--°C</span></div>
+            <div class="group">
+                <span class="time" id="home-bat-val">%--</span>
+                <div class="battery"><div class="battery-level" id="home-bat-bar"></div></div>
+            </div>
+            <div class="group">
+                <span class="signal-value" id="home-rssi">--</span>
+                <div class="signal-bars" id="home-rssi-bars">
+                    <div style="height: 25%"></div><div style="height: 50%"></div><div style="height: 75%"></div><div style="height: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HARİTA -->
+        <div style="position: relative;">
+            <div id='map'></div>
+            <div class="map-controls">
+                <button onclick="changeMapStyle('streets')">Sokak</button>
+                <button onclick="changeMapStyle('satellite')">Uydu</button>
+            </div>
+        </div>
+
+        <!-- KONTROL KARTLARI -->
+        <div class="card-container">
+            <!-- Çalışma Modu Kartı -->
+            <div class="card">
+                <div class="card-header"><i class="fas fa-cogs"></i><h3>Çalışma Modu</h3></div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label for="mode_1">Cihaz 1: </label>
+                        <select id="mode_1" class="mode-select">
+                            <option value="1">Mod 1 (Sık Gönderim)</option>
+                            <option value="2">Mod 2</option>
+                            <option value="3">Mod 3</option>
+                            <option value="4">Mod 4 (Ekonomik)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="mode_2">Cihaz 2: </label>
+                        <select id="mode_2" class="mode-select">
+                            <option value="1">Mod 1 (Sık Gönderim)</option>
+                            <option value="2">Mod 2</option>
+                            <option value="3">Mod 3</option>
+                            <option value="4">Mod 4 (Ekonomik)</option>
+                        </select>
+                    </div>
+                    <button class="btn-save" onclick="saveModes()"><i class="fas fa-sync-alt"></i> Modları Uygula</button>
+                </div>
+            </div>
+
+            <!-- İsim Kartı -->
+            <div class="card">
+                <div class="card-header"><i class="fas fa-tag"></i><h3>Hayvan İsimleri</h3></div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label for="name_1"><i class="fas fa-cow" style="color:#FF5733"></i> İnek 1: </label>
+                        <input type="text" id="name_1">
+                    </div>
+                    <div class="input-group">
+                        <label for="name_2"><i class="fas fa-cow" style="color:#33FF57"></i> İnek 2: </label>
+                        <input type="text" id="name_2">
+                    </div>
+                    <button class="btn-save" onclick="updateNames()"><i class="fas fa-sync-alt"></i> İsimleri Değiştir</button>
+                </div>
+            </div>
+
+            <!-- Konum Kartı -->
+            <div class="card">
+                <div class="card-header"><i class="fas fa-map-marker-alt"></i><h3>Ev Konum Ayarları</h3></div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label for="myLat">Enlem: </label>
+                        <input type="number" id="myLat" step="0.000001">
+                    </div>
+                    <div class="input-group">
+                        <label for="myLon">Boylam: </label>
+                        <input type="number" id="myLon" step="0.000001">
+                    </div>
+                    <button class="btn-save" onclick="saveMyLocation()"><i class="fas fa-sync-alt"></i> Konumu Güncelle</button>
+                </div>
+            </div>
+
+            <!-- Veri Kartı -->
+            <div class="card">
+                <div class="card-header"><i class="fas fa-database"></i><h3>Uzak Sistem Yönetimi</h3></div>
+                <div class="card-body">
+                    <button class="btn-action" onclick="requestNewLocation()"><i class="fas fa-sync-alt"></i> Güncel Konum İste</button>
+                    <button class="btn-danger" onclick="triggerOta()"><i class="fas fa-microchip"></i> Yazılım Güncelle (OTA)</button>
+                    <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> Geçmiş İzleri Temizle</button>
+                </div>
+            </div>
+        </div>
+        <div id="status" class="status-message"></div>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE ENTEGRASYONU (SİZİN BİLGİLERİNİZ) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM8i8CwLKjZslB5URdV6pZ2YNlAqm7XKY",
+            authDomain: "ineklerim-nerede.firebaseapp.com",
+            databaseURL: "https://ineklerim-nerede-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ineklerim-nerede",
+            storageBucket: "ineklerim-nerede.firebasestorage.app",
+            messagingSenderId: "932185633194",
+            appId: "1:932185633194:web:5a6a69df010e9153e7bbd3"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // --- HARİTA VE BAŞLANGIÇ AYARLARI ---
+        var map = L.map('map');
+        var baseLayers = {
+            'Sokak': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            'Uydu': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+        };
+        baseLayers['Uydu'].addTo(map);
+
+        var userMarker = null;
+        var default_lat = 41.514270;
+        var default_lon = 33.045921;
+        var home_lat = default_lat;
+        var home_lon = default_lon;
+
+        var evIkoni = L.divIcon({
+            className: 'ev-marker',
+            html: '<div style="background:#3498db;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-home" style="font-size:16px;"></i></div>',
+            iconSize: [30, 30]
+        });
+
+        var cihazOzellikleri = {
+            1001: { renk: '#FF5733', ikon: 'fa-cow', isim: 'İnek 1001', marker: null, polyline: null, pathPoints: [] },
+            1002: { renk: '#33FF57', ikon: 'fa-cow', isim: 'İnek 1002', marker: null, polyline: null, pathPoints: [] }
+        };
+
+        // --- 2. GİRİŞ VE OTURUM KONTROLÜ ---
+        auth.onAuthStateChanged(function(user) {
+            if (user) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('main-dashboard').style.display = 'block';
+                initializeDashboard();
+            } else {
+                document.getElementById('login-container').style.display = 'block';
+                document.getElementById('main-dashboard').style.display = 'none';
+            }
+        });
+
+        function loginUser() {
+            var email = document.getElementById('login-email').value;
+            var pass = document.getElementById('login-password').value;
+            auth.signInWithEmailAndPassword(email, pass).catch(function(error) {
+                document.getElementById('login-error').textContent = "Hata: " + error.message;
+            });
+        }
+
+        function logoutUser() {
+            auth.signOut();
+        }
+
+        // --- 3. BULUT VERİ DİNLEME (REAL-TIME STREAM) ---
+        function initializeDashboard() {
+            map.setView([home_lat, home_lon], 16);
+            updateUserMarker(home_lat, home_lon);
+
+            // A) Ayarları Al (İsimler, Modlar, Ev Konumu)
+            database.ref('/ayarlar').on('value', function(snapshot) {
+                var val = snapshot.val();
+                if (val) {
+                    if (val.konum) {
+                        home_lat = val.konum.enlem;
+                        home_lon = val.konum.boylam;
+                        document.getElementById('myLat').value = home_lat;
+                        document.getElementById('myLon').value = home_lon;
+                        updateUserMarker(home_lat, home_lon);
+                    }
+                    if (val.isimler) {
+                        cihazOzellikleri[1001].isim = val.isimler.isim1 || "İnek 1001";
+                        cihazOzellikleri[1002].isim = val.isimler.isim2 || "İnek 1002";
+                        document.getElementById('name_1').value = cihazOzellikleri[1001].isim;
+                        document.getElementById('name_2').value = cihazOzellikleri[1002].isim;
+                        document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
+                        document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
+                    }
+                    if (val.modlar) {
+                        document.getElementById('mode_1').value = val.modlar.mod1 || 4;
+                        document.getElementById('mode_2').value = val.modlar.mod2 || 4;
+                    }
+                }
+            });
+
+            // B) Alıcı (Ev) Durumunu Dinle
+            database.ref('/evCihazi').on('value', function(snapshot) {
+                var val = snapshot.val();
+                if (val) {
+                    document.getElementById('home-time').textContent = val.evSaat || "--:--";
+                    document.getElementById('home-temp').textContent = (val.evSicaklik || 0) + "°C";
+                    
+                    var bat_mv = val.evBatarya || 0;
+                    var bat_pct = Math.max(0, Math.min(100, Math.round((bat_mv - 3000) / (4200 - 3000) * 100)));
+                    document.getElementById('home-bat-val').textContent = "%" + bat_pct;
+                    document.getElementById('home-bat-bar').style.width = bat_pct + "%";
+                    
+                    document.getElementById('home-rssi').textContent = val.evRssi || "--";
+                    updateRssiBars('home-rssi-bars', val.evRssi);
+                }
+            });
+
+            // C) Tasmaların Son Konumlarını Dinle
+            database.ref('/cihazlar').on('value', function(snapshot) {
+                var cihazlar = snapshot.val();
+                if (cihazlar) {
+                    Object.keys(cihazlar).forEach(function(cihazNo) {
+                        var veri = cihazlar[cihazNo].sonKonum;
+                        if (veri) {
+                            updateDeviceInfo(cihazNo, veri);
+                            updateMapMarker(cihazNo, veri.enlem, veri.boylam);
+                        }
+                    });
+                }
+            });
+
+            // D) Geçmiş Konum İzlerini Dinle
+            database.ref('/cihazGecmisi').on('value', function(snapshot) {
+                var gecmis = snapshot.val();
+                if (gecmis) {
+                    Object.keys(gecmis).forEach(function(cihazNo) {
+                        var noktalar = [];
+                        var pushGecmisi = gecmis[cihazNo];
+                        Object.keys(pushGecmisi).forEach(function(key) {
+                            var n = pushGecmisi[key];
+                            if (n.enlem && n.boylam) {
+                                noktalar.push([n.enlem, n.boylam]);
+                            }
+                        });
+                        drawPath(cihazNo, noktalar);
+                    });
+                }
+            });
+        }
+
+        // --- 4. VERİ YAZMA VE AYAR GÜNCELLEME İŞLEMLERİ ---
+
+        function saveMyLocation() {
+            var lat = parseFloat(document.getElementById('myLat').value);
+            var lon = parseFloat(document.getElementById('myLon').value);
+            database.ref('/ayarlar/konum').set({ enlem: lat, boylam: lon })
+                .then(function() { showStatus("Ev konumu güncellendi.", "success"); })
+                .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+        }
+
+        function updateNames() {
+            var name1 = document.getElementById('name_1').value.trim();
+            var name2 = document.getElementById('name_2').value.trim();
+            database.ref('/ayarlar/isimler').set({ isim1: name1, isim2: name2 })
+                .then(function() { showStatus("Hayvan isimleri güncellendi.", "success"); })
+                .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+        }
+
+        function saveModes() {
+            var m1 = parseInt(document.getElementById('mode_1').value);
+            var m2 = parseInt(document.getElementById('mode_2').value);
+            database.ref('/ayarlar/modlar').set({ mod1: m1, mod2: m2 })
+                .then(function() { showStatus("Çalışma modları güncellendi.", "success"); })
+                .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+        }
+
+        function requestNewLocation() {
+            database.ref('/komutlar/konumIste').set(Date.now())
+                .then(function() { showStatus("Güncel konum talebi gönderildi.", "success"); })
+                .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+        }
+
+        function triggerOta() {
+            if (confirm("OTA yazılım güncelleme işlemini başlatmak istiyor musunuz?")) {
+                database.ref('/komutlar/otaTetikle').set(Date.now())
+                    .then(function() { showStatus("OTA Güncelleme emri gönderildi.", "success"); })
+                    .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+            }
+        }
+
+        function clearHistory() {
+            if (confirm("Tüm geçmiş izleri silmek istediğinize emin misiniz? (Son konumlar korunur)")) {
+                database.ref('/cihazGecmisi').remove()
+                    .then(function() { 
+                        showStatus("Geçmiş izleri silindi.", "success"); 
+                        Object.keys(cihazOzellikleri).forEach(function(no) {
+                            if (cihazOzellikleri[no].polyline) {
+                                map.removeLayer(cihazOzellikleri[no].polyline);
+                                cihazOzellikleri[no].polyline = null;
+                            }
+                        });
+                    })
+                    .catch(function(err) { showStatus("Hata: " + err.message, "error"); });
+            }
+        }
+
+        // --- 5. HARİTA VE ARAYÜZ YARDIMCILARI ---
+
+        function updateUserMarker(lat, lng) {
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.marker([lat, lng], { icon: evIkoni, zIndexOffset: 1000 }).addTo(map);
+        }
+
+        function updateMapMarker(cihazNo, lat, lng) {
+            var ozellik = cihazOzellikleri[cihazNo];
+            if (!ozellik) return;
+
+            var cihazIkoni = L.divIcon({
+                className: 'cihaz-marker',
+                html: '<div style="background:' + ozellik.renk + ';color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><i class="fas ' + ozellik.ikon + '" style="font-size:16px;"></i></div>',
+                iconSize: [30, 30]
+            });
+
+            if (userMarkerExists(ozellik.marker)) {
+                map.removeLayer(ozellik.marker);
+            }
+            ozellik.marker = L.marker([lat, lng], { icon: cihazIkoni }).addTo(map)
+                .bindPopup("<b>" + ozellik.isim + "</b><br>Enlem: " + lat.toFixed(6) + "<br>Boylam: " + lng.toFixed(6));
+        }
+
+        function userMarkerExists(marker) {
+            return marker instanceof L.Marker && map.hasLayer(marker);
+        }
+
+        function drawPath(cihazNo, noktalar) {
+            var ozellik = cihazOzellikleri[cihazNo];
+            if (!ozellik || noktalar.length === 0) return;
+
+            if (ozellik.polyline) map.removeLayer(ozellik.polyline);
+
+            ozellik.polyline = L.polyline(noktalar, {
+                color: ozellik.renk,
+                weight: 4,
+                opacity: 0.7
+            }).addTo(map);
+        }
+
+        function updateDeviceInfo(cihazNo, data) {
+            document.getElementById('time-' + cihazNo).textContent = data.saat || "--:--";
+            document.getElementById('temp-' + cihazNo).textContent = (data.sicaklik || 0) + "°C";
+            
+            var bat_mv = data.batarya || 0;
+            var bat_pct = Math.max(0, Math.min(100, Math.round((bat_mv - 3000) / (4150 - 3000) * 100)));
+            document.getElementById('bat-val-' + cihazNo).textContent = "%" + bat_pct;
+            document.getElementById('bat-bar-' + cihazNo).style.width = bat_pct + "%";
+            
+            document.getElementById('rssi-' + cihazNo).textContent = data.rssi || "--";
+            updateRssiBars('rssi-bars-' + cihazNo, data.rssi);
+        }
+
+        function updateRssiBars(containerId, rssi) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var bars = container.getElementsByTagName('div');
+            var color = '#ccc';
+            
+            if (rssi >= -70) { color = '#2ed573'; }
+            else if (rssi >= -85) { color = '#ffa502'; }
+            else { color = '#ff4757'; }
+
+            for (var i = 0; i < bars.length; i++) {
+                bars[i].style.backgroundColor = color;
+            }
+        }
+
+        function changeMapStyle(style) {
+            Object.keys(baseLayers).forEach(function (key) { map.removeLayer(baseLayers[key]); });
+            if (style === 'satellite') baseLayers['Uydu'].addTo(map);
+            else baseLayers['Sokak'].addTo(map);
+        }
+
+        function showStatus(message, type) {
+            var statusElement = document.getElementById("status");
+            statusElement.textContent = message;
+            statusElement.className = "status-message " + type;
+            statusElement.style.display = "block";
+            setTimeout(function () { statusElement.style.display = "none"; }, 4000);
+        }
+    </script>
+</body>
+</html>
