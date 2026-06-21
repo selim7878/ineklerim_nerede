@@ -545,6 +545,9 @@
         function updateUserMarker(lat, lng) {
             if (userMarker) map.removeLayer(userMarker);
             userMarker = L.marker([lat, lng], { icon: evIkoni, zIndexOffset: 1000 }).addTo(map);
+
+            // Konum her yüklendiğinde veya değiştiğinde haritayı odakla:
+            updateMapView();
         }
 
         function updateMapMarker(cihazNo, lat, lng) {
@@ -562,6 +565,36 @@
             }
             ozellik.marker = L.marker([lat, lng], { icon: cihazIkoni }).addTo(map)
                 .bindPopup("<b>" + ozellik.isim + "</b><br>Enlem: " + lat.toFixed(6) + "<br>Boylam: " + lng.toFixed(6));
+
+            // Yeni tasma konumu geldiğinde haritayı otomatik odakla:
+            updateMapView();
+        }
+
+        function updateMapView() {
+            var bounds = L.latLngBounds([]);
+            var activeElements = false;
+
+            // 1. Ev konumunu kapsama alanına ekle
+            if (userMarker) {
+                bounds.extend(userMarker.getLatLng());
+                activeElements = true;
+            }
+
+            // 2. Haritada aktif olan (gösterilen) tasma konumlarını kapsama alanına ekle
+            Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
+                var ozellik = cihazOzellikleri[cihazNo];
+                if (ozellik && ozellik.marker && map.hasLayer(ozellik.marker)) {
+                    bounds.extend(ozellik.marker.getLatLng());
+                    activeElements = true;
+                }
+            });
+
+            // 3. Haritayı bu sınırlara göre otomatik yakınlaştır ve ortala
+            if (activeElements && bounds.isValid()) {
+                // padding: [50, 50] -> kenarlardan 50'şer piksel pay bırakır (görsel rahatlık için)
+                // maxZoom: 16 -> eğer sadece tek bir nokta varsa ekranın aşırı yakınlaşmasını önler
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+            }
         }
 
         function userMarkerExists(marker) {
