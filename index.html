@@ -11,7 +11,7 @@
     <link rel='stylesheet' href='https://unpkg.com/leaflet/dist/leaflet.css' />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Firebase SDK v8 (CDN - En Stabil Tek Dosya Yapısı) -->
+    <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -40,7 +40,6 @@
             margin: 10px 0px 20px 0px;
         }
 
-        /* Giriş Paneli Tasarımı */
         #login-container {
             max-width: 400px;
             margin: 100px auto;
@@ -312,35 +311,35 @@
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
 
-		.map-controls {
-			position: absolute;
-			top: 10px;
-			right: 10px;
-			z-index: 1000;
-			background: white;
-			padding: 5px;
-			border-radius: 4px;
-			box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
-			display: flex;
-			gap: 2px;
-		}
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 5px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 2px;
+        }
 
-		.map-controls button {
-			padding: 6px 12px;
-			font-size: 12px;
-			background: #3498db;
-			color: white;
-			border: none;
-			border-radius: 3px;
-			cursor: pointer;
-			white-space: nowrap;
-			width: 65px;
-			text-align: center;
-		}
+        .map-controls button {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            white-space: nowrap;
+            width: 65px;
+            text-align: center;
+        }
 
-		.map-controls button:hover {
-			background: #2980b9;
-		}
+        .map-controls button:hover {
+            background: #2980b9;
+        }
 
         .status-message {
             margin-top: 15px;
@@ -380,12 +379,11 @@
             margin-right: 5px;
         }
 
-        .ev-marker i {
-            color: white;
-        }
-
-        .inek-marker i {
-            color: white;
+        /* Leaflet DivIcon Arka Plan Sıfırlama Kuralları */
+        .ev-marker, .cihaz-marker {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
         }
     </style>
 </head>
@@ -600,7 +598,7 @@
         const database = firebase.database();
         const auth = firebase.auth();
 
-        // --- DEĞİŞKEN TANIMLAMALARI (KONTROLLERDEN ÖNCE TANIMLANMALI) ---
+        // --- DEĞİŞKEN TANIMLAMALARI ---
         var map = L.map('map');
         var baseLayers = {
             'Sokak': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
@@ -620,7 +618,9 @@
         var home_lat = cached_lat ? parseFloat(cached_lat) : default_lat;
         var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
 
-        // cihazOzellikleri NESNESİ KONTROLLERDEN ÖNCE TANIMLANMALI
+        var viewingDate = ""; // Seçilen aktif tarih
+        var initialBoundsSet = false; // Haritanın otomatik odaklanma kilidi
+
         var cihazOzellikleri = {
             1001: {
                 renk: '#FF5733',
@@ -654,17 +654,15 @@
             iconSize: [30, 30]
         });
 
-        // --- LEJANT KONTROLLERİ (cihazOzellikleri tanımlandıktan SONRA) ---
-
         // 1. HARİTA STİLİ KONTROLÜ (SAĞ ÜST)
-		var haritaStiliControl = L.control({ position: 'topright' });
-		haritaStiliControl.onAdd = function (map) {
-			var div = L.DomUtil.create('div', 'map-controls');
-			div.innerHTML = '<button onclick="changeMapStyle(\'streets\')">Sokak</button><button onclick="changeMapStyle(\'satellite\')">Uydu</button>';
-			L.DomEvent.disableClickPropagation(div);
-			return div;
-		};
-		haritaStiliControl.addTo(map);
+        var haritaStiliControl = L.control({ position: 'topright' });
+        haritaStiliControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'map-controls');
+            div.innerHTML = '<button onclick="changeMapStyle(\'streets\')">Sokak</button><button onclick="changeMapStyle(\'satellite\')">Uydu</button>';
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        haritaStiliControl.addTo(map);
 
         // 2. CİHAZ GÖSTER/GİZLE KONTROLÜ (SAĞ ALT)
         var cihazKontrol = L.control({ position: 'bottomright' });
@@ -675,12 +673,10 @@
                 var ozellik = cihazOzellikleri[cihazNo];
                 
                 var label = document.createElement('label');
-                
                 var checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.dataset.cihazNo = cihazNo;
                 checkbox.id = 'cihaz_goster_' + cihazNo;
-                
                 checkbox.checked = true;
                 
                 var icon = document.createElement('i');
@@ -778,7 +774,6 @@
                     map.removeLayer(ozellik.distanceLabel);
                 }
             }
-            
             updateMapView();
         }
 
@@ -795,7 +790,7 @@
             });
         }
 
-        // --- 3. BULUT VERİ DİNLEME ---
+        // --- 3. BULUT VERİ DİNLEME VE TARİH SEÇİMİ ---
         var activeGecmisRefs = {};
 
         function initializeDashboard() {
@@ -809,14 +804,45 @@
             document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
             document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
 
-            var today = new Date().toISOString().split('T')[0];
-            var datePicker = document.getElementById('filterDate');
-            datePicker.value = today;
+            // Firebase'den kaydedilmiş geçmiş tarihleri tarayıp otomatik olarak SON GÜNÜ seçme mekanizması:
+            database.ref('/cihazGecmisi').once('value', function (snapshot) {
+                var gecmis = snapshot.val();
+                var tarihler = [];
+                var today = new Date().toISOString().split('T')[0];
 
-            datePicker.addEventListener('change', function () {
-                loadHistoryByDate(this.value);
+                if (gecmis) {
+                    Object.keys(gecmis).forEach(function (cihazNo) {
+                        Object.keys(gecmis[cihazNo]).forEach(function (tarihStr) {
+                            if (tarihler.indexOf(tarihStr) === -1) {
+                                tarihler.push(tarihStr);
+                            }
+                        });
+                    });
+                }
+
+                // Veritabanında kayıt yoksa bugünü listeye ekle
+                if (tarihler.indexOf(today) === -1) {
+                    tarihler.push(today);
+                }
+
+                // Tarihleri kronolojik sıralayıp son elemanı (en güncel günü) buluyoruz
+                tarihler.sort();
+                var sonGecerliTarih = tarihler[tarihler.length - 1];
+
+                viewingDate = sonGecerliTarih;
+                var datePicker = document.getElementById('filterDate');
+                datePicker.value = sonGecerliTarih;
+
+                datePicker.addEventListener('change', function () {
+                    viewingDate = this.value;
+                    initialBoundsSet = false; // Tarih değiştiğinde haritayı yeniden ortala
+                    loadHistoryByDate(this.value);
+                });
+
+                loadHistoryByDate(sonGecerliTarih);
             });
 
+            // Ayarlar Dinleyicisi
             database.ref('/ayarlar').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
@@ -861,6 +887,7 @@
                 }
             });
 
+            // Ev Alıcı Cihaz Dinleyicisi
             database.ref('/evCihazi').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
@@ -868,20 +895,25 @@
                 }
             });
 
+            // Canlı Cihaz Konum Takipçisi (Yalnızca seçili tarih bugün ise etkilidir)
             database.ref('/cihazlar').on('value', function (snapshot) {
                 var cihazlar = snapshot.val();
+                var todayStr = new Date().toISOString().split('T')[0];
+
                 if (cihazlar) {
                     Object.keys(cihazlar).forEach(function (cihazNo) {
                         var data = cihazlar[cihazNo].sonKonum;
                         if (data) {
                             updateDeviceInfo(cihazNo, data);
-                            updateMapMarker(cihazNo, data.enlem, data.boylam);
+                            
+                            // Seçili tarih bugün ise canlı konumu haritada güncelle
+                            if (viewingDate === todayStr) {
+                                updateMapMarker(cihazNo, data.enlem, data.boylam);
+                            }
                         }
                     });
                 }
             });
-
-            loadHistoryByDate(today);
         }
 
         function updateHomePanel(data) {
@@ -933,25 +965,35 @@
                         });
                         drawPath(cihazNo, noktalar);
 
-                        if (noktalar.length > 0) {
+                        // Eğer geçmiş bir tarihi inceliyorsak, marker ve mesafe çizgilerini o günün son konumuna taşıyoruz
+                        var todayStr = new Date().toISOString().split('T')[0];
+                        if (viewingDate !== todayStr && noktalar.length > 0) {
                             var sonGercekNokta = noktalar[noktalar.length - 1];
-                            var ozellik = cihazOzellikleri[cihazNo];
-                            if (ozellik) {
-                                if (!ozellik.sonGecerliLat || !ozellik.sonGecerliLng) {
-                                    ozellik.sonGecerliLat = sonGercekNokta[0];
-                                    ozellik.sonGecerliLng = sonGercekNokta[1];
-                                    updateMapMarker(cihazNo, sonGercekNokta[0], sonGercekNokta[1]);
-                                }
-                            }
+                            updateMapMarker(cihazNo, sonGercekNokta[0], sonGercekNokta[1]);
                         }
                     } else {
                         if (cihazOzellikleri[cihazNo].polyline) {
                             map.removeLayer(cihazOzellikleri[cihazNo].polyline);
                             cihazOzellikleri[cihazNo].polyline = null;
                         }
+
+                        // Geçmiş güne ait veri yoksa ve bugün değilsek haritadaki eski markerları kaldırıyoruz
+                        var todayStr = new Date().toISOString().split('T')[0];
+                        if (viewingDate !== todayStr) {
+                            removeCihazMapElements(cihazNo);
+                        }
                     }
                 });
             });
+        }
+
+        function removeCihazMapElements(cihazNo) {
+            var ozellik = cihazOzellikleri[cihazNo];
+            if (ozellik) {
+                if (ozellik.marker && map.hasLayer(ozellik.marker)) map.removeLayer(ozellik.marker);
+                if (ozellik.homeLine && map.hasLayer(ozellik.homeLine)) map.removeLayer(ozellik.homeLine);
+                if (ozellik.distanceLabel && map.hasLayer(ozellik.distanceLabel)) map.removeLayer(ozellik.distanceLabel);
+            }
         }
 
         // --- 4. VERİ YAZMA VE AYAR GÜNCELLEME İŞLEMLERİ ---
@@ -1091,7 +1133,11 @@
             return R * c;
         }
 
-        function updateMapView() {
+        // Harita Odaklama Fonksiyonu (Geliştirilmiş QoL Modeli)
+        function updateMapView(force) {
+            // Kullanıcı el ile gezinirken auto-snapping'i önlemek için koruma mekanizması
+            if (!force && initialBoundsSet) return;
+
             var bounds = L.latLngBounds([]);
             var activeElements = false;
 
@@ -1114,6 +1160,7 @@
 
             if (activeElements && bounds.isValid()) {
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+                initialBoundsSet = true; // İlk konumlanmadan sonra kilidi kapatır
             }
         }
 
@@ -1185,6 +1232,7 @@
             setTimeout(function () { statusElement.style.display = "none"; }, 4000);
         }
 
+        // Mesafe Göster/Gizle Seçim Listener'ı
         document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'mesafeToggle') {
                 var goster = e.target.checked;
