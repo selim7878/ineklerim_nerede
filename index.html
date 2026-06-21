@@ -329,19 +329,34 @@
         var userMarker = null;
         var default_lat = 41.514270;
         var default_lon = 33.045921;
-        var home_lat = default_lat;
-        var home_lon = default_lon;
+        // --- TARAYICI ÖNBELLEĞİNDEN (CACHE) SON BİLİNEN DEĞERLERİ OKU ---
+        var cached_lat = localStorage.getItem('home_lat');
+        var cached_lon = localStorage.getItem('home_lon');
+        var cached_name1 = localStorage.getItem('name_1');
+        var cached_name2 = localStorage.getItem('name_2');
 
+        var home_lat = cached_lat ? parseFloat(cached_lat) : default_lat;
+        var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
+
+        var cihazOzellikleri = {
+            1001: { 
+                renk: '#FF5733', 
+                ikon: 'fa-cow', 
+                isim: cached_name1 || 'İnek 1001', // Önbellekten yükle
+                marker: null, polyline: null, pathPoints: [] 
+            },
+            1002: { 
+                renk: '#33FF57', 
+                ikon: 'fa-cow', 
+                isim: cached_name2 || 'İnek 1002', // Önbellekten yükle
+                marker: null, polyline: null, pathPoints: [] 
+            }
+        };
         var evIkoni = L.divIcon({
             className: 'ev-marker',
             html: '<div style="background:#3498db;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-home" style="font-size:16px;"></i></div>',
             iconSize: [30, 30]
         });
-
-        var cihazOzellikleri = {
-            1001: { renk: '#FF5733', ikon: 'fa-cow', isim: 'İnek 1001', marker: null, polyline: null, pathPoints: [] },
-            1002: { renk: '#33FF57', ikon: 'fa-cow', isim: 'İnek 1002', marker: null, polyline: null, pathPoints: [] }
-        };
 
         // --- 2. GİRİŞ VE OTURUM KONTROLÜ ---
         auth.onAuthStateChanged(function(user) {
@@ -372,15 +387,23 @@
         var activeGecmisRefs = {};
 
         function initializeDashboard() {
+            // Haritayı doğrudan son bilinen (cached) konumda başlat (Gecikme ve sıçrama olmaz)
             map.setView([home_lat, home_lon], 16);
             updateUserMarker(home_lat, home_lon);
 
-            // Varsayılan tarihi bugünün tarihi olarak ayarla (YYYY-MM-DD formatında)
+            // Input alanlarını önbellekteki verilerle hemen doldur (Firebase beklenirken boş kalmazlar)
+            document.getElementById('myLat').value = home_lat;
+            document.getElementById('myLon').value = home_lon;
+            document.getElementById('name_1').value = cihazOzellikleri[1001].isim;
+            document.getElementById('name_2').value = cihazOzellikleri[1002].isim;
+            document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
+            document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
+
+            // Varsayılan tarihi bugünün tarihi olarak ayarla
             var today = new Date().toISOString().split('T')[0];
             var datePicker = document.getElementById('filterDate');
             datePicker.value = today;
 
-            // Tarih değiştiğinde tetiklenecek olay
             datePicker.addEventListener('change', function() {
                 loadHistoryByDate(this.value);
             });
@@ -390,19 +413,38 @@
                 var val = snapshot.val();
                 if (val) {
                     if (val.konum) {
-                        home_lat = val.konum.enlem;
-                        home_lon = val.konum.boylam;
-                        document.getElementById('myLat').value = home_lat;
-                        document.getElementById('myLon').value = home_lon;
-                        updateUserMarker(home_lat, home_lon);
+                        var new_lat = val.konum.enlem;
+                        var new_lon = val.konum.boylam;
+                        
+                        // Eğer buluttaki konum yerel önbellektekinden farklıysa güncelle ve kaydet
+                        if (new_lat !== home_lat || new_lon !== home_lon) {
+                            home_lat = new_lat;
+                            home_lon = new_lon;
+                            
+                            localStorage.setItem('home_lat', home_lat);
+                            localStorage.setItem('home_lon', home_lon);
+                            
+                            document.getElementById('myLat').value = home_lat;
+                            document.getElementById('myLon').value = home_lon;
+                            updateUserMarker(home_lat, home_lon);
+                        }
                     }
                     if (val.isimler) {
-                        cihazOzellikleri[1001].isim = val.isimler.isim1 || "İnek 1001";
-                        cihazOzellikleri[1002].isim = val.isimler.isim2 || "İnek 1002";
-                        document.getElementById('name_1').value = cihazOzellikleri[1001].isim;
-                        document.getElementById('name_2').value = cihazOzellikleri[1002].isim;
-                        document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
-                        document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
+                        var n1 = val.isimler.isim1 || "İnek 1001";
+                        var n2 = val.isimler.isim2 || "İnek 1002";
+                        
+                        if (n1 !== cihazOzellikleri[1001].isim || n2 !== cihazOzellikleri[1002].isim) {
+                            cihazOzellikleri[1001].isim = n1;
+                            cihazOzellikleri[1002].isim = n2;
+                            
+                            localStorage.setItem('name_1', n1);
+                            localStorage.setItem('name_2', n2);
+                            
+                            document.getElementById('name_1').value = n1;
+                            document.getElementById('name_2').value = n2;
+                            document.getElementById('lbl-name1').textContent = n1;
+                            document.getElementById('lbl-name2').textContent = n2;
+                        }
                     }
                     if (val.modlar) {
                         document.getElementById('mode_1').value = val.modlar.mod1 || 4;
