@@ -82,8 +82,9 @@
             padding: 3px 8px;
             border-radius: 4px;
             font-size: 11px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.15);
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
         }
+
         .notification-bar {
             background: linear-gradient(145deg, #ffffff, #f0f0f0);
             padding: 8px 20px;
@@ -590,22 +591,24 @@
         var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
 
         var cihazOzellikleri = {
-            1001: { 
-                renk: '#FF5733', ikon: 'fa-cow', 
+            1001: {
+                renk: '#FF5733', ikon: 'fa-cow',
                 isim: cached_name1 || 'İnek 1001',
-                marker: null, polyline: null, 
-                homeLine: null, distanceLabel: null, // Yeni eklenen referanslar
-                pathPoints: [] 
+                marker: null, polyline: null,
+                homeLine: null, distanceLabel: null,
+                sonGecerliLat: null, sonGecerliLng: null, // Son geçerli konum bellekleri
+                pathPoints: []
             },
-            1002: { 
-                renk: '#33FF57', ikon: 'fa-cow', 
+            1002: {
+                renk: '#33FF57', ikon: 'fa-cow',
                 isim: cached_name2 || 'İnek 1002',
-                marker: null, polyline: null, 
-                homeLine: null, distanceLabel: null, // Yeni eklenen referanslar
-                pathPoints: [] 
+                marker: null, polyline: null,
+                homeLine: null, distanceLabel: null,
+                sonGecerliLat: null, sonGecerliLng: null, // Son geçerli konum bellekleri
+                pathPoints: []
             }
         };
-        
+
 
         var evIkoni = L.divIcon({
             className: 'ev-marker',
@@ -659,26 +662,26 @@
             var datePicker = document.getElementById('filterDate');
             datePicker.value = today;
 
-            datePicker.addEventListener('change', function() {
+            datePicker.addEventListener('change', function () {
                 loadHistoryByDate(this.value);
             });
 
             // A) Ayarları Al (İsimler, Modlar, Ev Konumu)
-            database.ref('/ayarlar').on('value', function(snapshot) {
+            database.ref('/ayarlar').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
                     if (val.konum) {
                         var new_lat = val.konum.enlem;
                         var new_lon = val.konum.boylam;
-                        
+
                         // Eğer buluttaki konum yerel önbellektekinden farklıysa güncelle ve kaydet
                         if (new_lat !== home_lat || new_lon !== home_lon) {
                             home_lat = new_lat;
                             home_lon = new_lon;
-                            
+
                             localStorage.setItem('home_lat', home_lat);
                             localStorage.setItem('home_lon', home_lon);
-                            
+
                             document.getElementById('myLat').value = home_lat;
                             document.getElementById('myLon').value = home_lon;
                             updateUserMarker(home_lat, home_lon);
@@ -687,14 +690,14 @@
                     if (val.isimler) {
                         var n1 = val.isimler.isim1 || "İnek 1001";
                         var n2 = val.isimler.isim2 || "İnek 1002";
-                        
+
                         if (n1 !== cihazOzellikleri[1001].isim || n2 !== cihazOzellikleri[1002].isim) {
                             cihazOzellikleri[1001].isim = n1;
                             cihazOzellikleri[1002].isim = n2;
-                            
+
                             localStorage.setItem('name_1', n1);
                             localStorage.setItem('name_2', n2);
-                            
+
                             document.getElementById('name_1').value = n1;
                             document.getElementById('name_2').value = n2;
                             document.getElementById('lbl-name1').textContent = n1;
@@ -755,23 +758,40 @@
                 }
             });
 
-            // Seçilen tarihe göre her cihaz için yeni dinleyicileri (listener) başlatıyoruz
-            Object.keys(cihazOzellikleri).forEach(function(cihazNo) {
+            // Seçilen tarihe göre her cihaz için yeni dinleyicileri başlatıyoruz
+            Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                 var dbPath = '/cihazGecmisi/' + cihazNo + '/' + selectedDate;
                 activeGecmisRefs[cihazNo] = database.ref(dbPath);
 
-                activeGecmisRefs[cihazNo].on('value', function(snapshot) {
+                activeGecmisRefs[cihazNo].on('value', function (snapshot) {
                     var noktalar = [];
                     var gunlukVeri = snapshot.val();
                     if (gunlukVeri) {
-                        Object.keys(gunlukVeri).forEach(function(key) {
+                        Object.keys(gunlukVeri).forEach(function (key) {
                             var pt = gunlukVeri[key];
-                            // DEĞİŞİKLİK: Sadece enlem ve boylamı 0 olmayan geçerli verileri listeye al
                             if (pt.enlem && pt.boylam && pt.enlem !== 0 && pt.boylam !== 0) {
                                 noktalar.push([pt.enlem, pt.boylam]);
                             }
                         });
                         drawPath(cihazNo, noktalar);
+
+                        // --- AKILLI BAŞLANGIÇ DESTEĞİ ---
+                        // Eğer geçmişte geçerli konumlar varsa ve cihaz şu an 0,0 veriyorsa,
+                        // haritadaki işareti ve mesafeyi geçmişteki en son gerçek konuma çizdir:
+                        if (noktalar.length > 0) {
+                            var sonGercekNokta = noktalar[noktalar.length - 1];
+                            var ozellik = cihazOzellikleri[cihazNo];
+                            if (ozellik) {
+                                // Eğer henüz anlık geçerli bir konum alınmadıysa geçmişteki son noktayı bellek olarak kullan
+                                if (!ozellik.sonGecerliLat || !ozellik.sonGecerliLng) {
+                                    ozellik.sonGecerliLat = sonGercekNokta[0];
+                                    ozellik.sonGecerliLng = sonGercekNokta[1];
+
+                                    // İşaretçiyi ve mesafeyi bu gerçek noktaya göre haritada güncelle
+                                    updateMapMarker(cihazNo, sonGercekNokta[0], sonGercekNokta[1]);
+                                }
+                            }
+                        }
                     } else {
                         if (cihazOzellikleri[cihazNo].polyline) {
                             map.removeLayer(cihazOzellikleri[cihazNo].polyline);
@@ -848,11 +868,24 @@
         }
 
         function updateMapMarker(cihazNo, lat, lng) {
-            // Güvenlik Önlemi: Eğer koordinatlar sıfır ise (Geçersiz konum) haritada işlem yapma
-            if (lat === 0 || lng === 0) return; 
-
             var ozellik = cihazOzellikleri[cihazNo];
             if (!ozellik) return;
+
+            // --- KOORDİNAT BELLEK KONTROLÜ ---
+            if (lat !== 0 && lng !== 0) {
+                // Gelen konum geçerli ise bunu "Son Geçerli Konum" olarak belleğe al
+                ozellik.sonGecerliLat = lat;
+                ozellik.sonGecerliLng = lng;
+            } else {
+                // Gelen konum 0,0 (geçersiz) ise, bellekteki son gerçek konumu kullan
+                if (ozellik.sonGecerliLat && ozellik.sonGecerliLng) {
+                    lat = ozellik.sonGecerliLat;
+                    lng = ozellik.sonGecerliLng;
+                } else {
+                    // Eğer bellekte de hiç gerçek konum yoksa (örn. ilk açılışta), çizim yapma
+                    return;
+                }
+            }
 
             var cihazIkoni = L.divIcon({
                 className: 'cihaz-marker',
@@ -866,44 +899,37 @@
             ozellik.marker = L.marker([lat, lng], { icon: cihazIkoni }).addTo(map)
                 .bindPopup("<b>" + ozellik.isim + "</b><br>Enlem: " + lat.toFixed(6) + "<br>Boylam: " + lng.toFixed(6));
 
-            // --- EVE OLAN UZAKLIĞI HESAPLAMA VE ÇİZME ---
-            // Varsa eski çizgi ve balonu temizle
+            // --- EVE OLAN UZAKLIĞI HESAPLAMA ---
             if (ozellik.homeLine) map.removeLayer(ozellik.homeLine);
             if (ozellik.distanceLabel) map.removeLayer(ozellik.distanceLabel);
 
-            // Leaflet'in dahili WGS84 hassas mesafe ölçüm fonksiyonu (metre cinsinden döner)
             var homeLatLng = L.latLng(home_lat, home_lon);
             var deviceLatLng = L.latLng(lat, lng);
             var distMeters = homeLatLng.distanceTo(deviceLatLng);
             var distStr = (distMeters >= 1000) ? (distMeters / 1000).toFixed(2) + " km" : Math.round(distMeters) + " m";
 
-            // Mavi kesikli mesafe çizgisi
             ozellik.homeLine = L.polyline([[home_lat, home_lon], [lat, lng]], {
                 color: '#3498db',
                 dashArray: '6, 12',
                 weight: 2,
                 opacity: 0.8
-            }).addTo(map);
+            });
 
-            // Çizginin tam ortasına yerleştirilecek mesafe balonu
             var midPoint = [(home_lat + lat) / 2, (home_lon + lng) / 2];
             ozellik.distanceLabel = L.tooltip({
                 permanent: true,
                 direction: 'center',
                 className: 'distance-label'
             })
-            .setLatLng(midPoint)
-            .setContent("<b>" + distStr + "</b>")
-            .addTo(map);
-            
-            // Sadece sol alttaki kutucuk seçili ise haritada göster ---
+                .setLatLng(midPoint)
+                .setContent("<b>" + distStr + "</b>");
+
             var mesafeGosterilsinMi = document.getElementById('mesafeToggle') ? document.getElementById('mesafeToggle').checked : true;
             if (mesafeGosterilsinMi) {
                 ozellik.homeLine.addTo(map);
                 ozellik.distanceLabel.addTo(map);
             }
 
-            // Haritayı otomatik odakla
             updateMapView();
         }
 
@@ -993,11 +1019,11 @@
             setTimeout(function () { statusElement.style.display = "none"; }, 4000);
         }
         // Mesafe kutucuğunun işaretlenme durumuna göre çizgileri göster/gizle
-        document.addEventListener('change', function(e) {
+        document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'mesafeToggle') {
                 var goster = e.target.checked;
-                
-                Object.keys(cihazOzellikleri).forEach(function(cihazNo) {
+
+                Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                     var ozellik = cihazOzellikleri[cihazNo];
                     if (ozellik) {
                         if (goster) {
