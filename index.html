@@ -59,10 +59,8 @@
             box-sizing: border-box;
         }
 
-        /* Orijinal Panel Tasarımları */
         #main-dashboard {
             display: none;
-            /* Giriş yapılana kadar gizli */
         }
 
         #map {
@@ -73,7 +71,6 @@
             border: 1px solid #ddd;
         }
 
-        /* Mesafe Balonu Tasarımı */
         .leaflet-tooltip.distance-label {
             background-color: rgba(255, 255, 255, 0.9);
             border: 1px solid #3498db;
@@ -105,12 +102,10 @@
             body {
                 margin: 2px;
             }
-
             .container {
                 padding: 10px;
                 max-width: 100%;
             }
-
             .notification-bar {
                 font-size: 11px;
                 padding: 4px 10px;
@@ -147,6 +142,7 @@
             border-radius: 8px;
             font-weight: 600;
             font-size: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .device-name-label_green {
@@ -156,16 +152,19 @@
             border-radius: 8px;
             font-weight: 600;
             font-size: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .cow-icon_red {
             color: #FF5733;
             font-size: 20px;
+            filter: drop-shadow(0 2px 2px rgba(255, 71, 87, 0.2));
         }
 
         .cow-icon_green {
             color: #33FF57;
             font-size: 20px;
+            filter: drop-shadow(0 2px 2px rgba(255, 71, 87, 0.2));
         }
 
         .battery {
@@ -206,7 +205,13 @@
             width: 4px;
             background: #2ed573;
             border-radius: 2px;
+            transition: height 0.3s ease;
         }
+
+        .bar1 { height: 25%; }
+        .bar2 { height: 50%; }
+        .bar3 { height: 75%; }
+        .bar4 { height: 100%; }
 
         .time,
         .signal-value {
@@ -269,6 +274,15 @@
             font-size: 13px;
         }
 
+        .mode-select:hover {
+            border-color: #3498db;
+        }
+
+        .mode-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
         .btn-save,
         .btn-action,
         .btn-danger {
@@ -298,27 +312,35 @@
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
 
-        .map-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 5px;
-            border-radius: 4px;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
-        }
+		.map-controls {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			z-index: 1000;
+			background: white;
+			padding: 5px;
+			border-radius: 4px;
+			box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+			display: flex;
+			gap: 2px;
+		}
 
-        .map-controls button {
-            padding: 5px 10px;
-            margin: 2px;
-            font-size: 12px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+		.map-controls button {
+			padding: 6px 12px;
+			font-size: 12px;
+			background: #3498db;
+			color: white;
+			border: none;
+			border-radius: 3px;
+			cursor: pointer;
+			white-space: nowrap;
+			width: 65px;
+			text-align: center;
+		}
+
+		.map-controls button:hover {
+			background: #2980b9;
+		}
 
         .status-message {
             margin-top: 15px;
@@ -337,6 +359,34 @@
             background: #f8d7da;
             color: #721c24;
         }
+
+        .cihaz-kontrol-paneli {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .cihaz-kontrol-paneli label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cihaz-kontrol-paneli input {
+            margin-right: 5px;
+        }
+
+        .ev-marker i {
+            color: white;
+        }
+
+        .inek-marker i {
+            color: white;
+        }
     </style>
 </head>
 
@@ -345,7 +395,7 @@
     <!-- GİRİŞ EKRANI -->
     <div id="login-container">
         <h2 style="text-align: center; color: #2c3e50;">Sistem Girişi</h2>
-        <input type="email" id="login-email" class="login-input" placeholder="E-posta Adresi (admin@domain.com)">
+        <input type="email" id="login-email" class="login-input" placeholder="E-posta Adresi">
         <input type="password" id="login-password" class="login-input" placeholder="Şifre">
         <button onclick="loginUser()" class="btn-action" style="margin-top: 15px;">Giriş Yap</button>
         <div id="login-error" style="color: red; text-align: center; margin-top: 10px; font-size: 13px;"></div>
@@ -354,7 +404,7 @@
     <!-- ANA PANEL -->
     <div id="main-dashboard" class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>İneklerim Nerede - Bulut Kontrol</h1>
+            <h1>İneklerim Nerede</h1>
             <button onclick="logoutUser()" class="btn-danger"
                 style="width: auto; padding: 5px 15px; margin-bottom: 10px;">Çıkış</button>
         </div>
@@ -362,8 +412,8 @@
         <!-- CİHAZ 1001 PANELİ -->
         <div class="notification-bar" id="device-1001">
             <div class="group3">
-                <i class="fas fa-cow cow-icon_red"></i>
-                <div class="device-name-label_red" id="lbl-name1">İnek 1001</div>
+                <i class="fas fa-cow cow-icon_red" title="1001"></i>
+                <div class="device-name-label_red" id="lbl-name1">Simge</div>
             </div>
             <div class="group2"><span class="time" id="time-1001">--:--</span></div>
             <div class="group2"><span class="time" id="temp-1001">--°C</span></div>
@@ -376,10 +426,10 @@
             <div class="group">
                 <span class="signal-value" id="rssi-1001">--</span>
                 <div class="signal-bars" id="rssi-bars-1001">
-                    <div style="height: 25%"></div>
-                    <div style="height: 50%"></div>
-                    <div style="height: 75%"></div>
-                    <div style="height: 100%"></div>
+                    <div class="bar1"></div>
+                    <div class="bar2"></div>
+                    <div class="bar3"></div>
+                    <div class="bar4"></div>
                 </div>
             </div>
         </div>
@@ -387,8 +437,8 @@
         <!-- CİHAZ 1002 PANELİ -->
         <div class="notification-bar" id="device-1002">
             <div class="group3">
-                <i class="fas fa-cow cow-icon_green"></i>
-                <div class="device-name-label_green" id="lbl-name2">İnek 1002</div>
+                <i class="fas fa-cow cow-icon_green" title="1002"></i>
+                <div class="device-name-label_green" id="lbl-name2">Cansu</div>
             </div>
             <div class="group2"><span class="time" id="time-1002">--:--</span></div>
             <div class="group2"><span class="time" id="temp-1002">--°C</span></div>
@@ -401,10 +451,10 @@
             <div class="group">
                 <span class="signal-value" id="rssi-1002">--</span>
                 <div class="signal-bars" id="rssi-bars-1002">
-                    <div style="height: 25%"></div>
-                    <div style="height: 50%"></div>
-                    <div style="height: 75%"></div>
-                    <div style="height: 100%"></div>
+                    <div class="bar1"></div>
+                    <div class="bar2"></div>
+                    <div class="bar3"></div>
+                    <div class="bar4"></div>
                 </div>
             </div>
         </div>
@@ -415,7 +465,7 @@
                 <i class="fas fa-home"
                     style="color: #fff; font-size: 15px; background-color: #3498db; border-radius: 50%; padding: 5px;"></i>
                 <div
-                    style="color: #444; background: linear-gradient(to right, #3498db, #2980b9); padding: 2px 6px; border-radius: 8px; font-weight: 600; font-size: 12px;">
+                    style="color: #444; background: linear-gradient(to right, #3498db, #2980b9); padding: 2px 6px; border-radius: 8px; font-weight: 600; font-size: 12px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);">
                     Ev</div>
             </div>
             <div class="group2"><span class="time" id="home-time">--:--</span></div>
@@ -429,10 +479,10 @@
             <div class="group">
                 <span class="signal-value" id="home-rssi">--</span>
                 <div class="signal-bars" id="home-rssi-bars">
-                    <div style="height: 25%"></div>
-                    <div style="height: 50%"></div>
-                    <div style="height: 75%"></div>
-                    <div style="height: 100%"></div>
+                    <div class="bar1"></div>
+                    <div class="bar2"></div>
+                    <div class="bar3"></div>
+                    <div class="bar4"></div>
                 </div>
             </div>
         </div>
@@ -448,10 +498,6 @@
                     style="padding: 6px 12px; border: 1px solid #3498db; border-radius: 6px; font-weight: bold; color: #2c3e50; outline: none;">
             </div>
             <div id='map'></div>
-            <div class="map-controls">
-                <button onclick="changeMapStyle('streets')">Sokak</button>
-                <button onclick="changeMapStyle('satellite')">Uydu</button>
-            </div>
         </div>
 
         <!-- KONTROL KARTLARI -->
@@ -465,23 +511,24 @@
                     <div class="input-group">
                         <label for="mode_1">Cihaz 1: </label>
                         <select id="mode_1" class="mode-select">
-                            <option value="1">Mod 1 (Sık Gönderim)</option>
+                            <option value="1">Mod 1 (Varsayılan)</option>
                             <option value="2">Mod 2</option>
                             <option value="3">Mod 3</option>
-                            <option value="4">Mod 4 (Ekonomik)</option>
+                            <option value="4">Mod 4</option>
+                            <option value="5">Mod 5</option>
                         </select>
                     </div>
                     <div class="input-group">
                         <label for="mode_2">Cihaz 2: </label>
                         <select id="mode_2" class="mode-select">
-                            <option value="1">Mod 1 (Sık Gönderim)</option>
+                            <option value="1">Mod 1 (Varsayılan)</option>
                             <option value="2">Mod 2</option>
                             <option value="3">Mod 3</option>
-                            <option value="4">Mod 4 (Ekonomik)</option>
+                            <option value="4">Mod 4</option>
+                            <option value="5">Mod 5</option>
                         </select>
                     </div>
-                    <button class="btn-save" onclick="saveModes()"><i class="fas fa-sync-alt"></i> Modları
-                        Uygula</button>
+                    <button class="btn-save" onclick="saveModes()"><i class="fas fa-sync-alt"></i><span class="btn-text"> Modları Uygula</span></button>
                 </div>
             </div>
 
@@ -493,14 +540,13 @@
                 <div class="card-body">
                     <div class="input-group">
                         <label for="name_1"><i class="fas fa-cow" style="color:#FF5733"></i> İnek 1: </label>
-                        <input type="text" id="name_1">
+                        <input type="text" id="name_1" placeholder="Örn: Simge">
                     </div>
                     <div class="input-group">
                         <label for="name_2"><i class="fas fa-cow" style="color:#33FF57"></i> İnek 2: </label>
-                        <input type="text" id="name_2">
+                        <input type="text" id="name_2" placeholder="Örn: Cansu">
                     </div>
-                    <button class="btn-save" onclick="updateNames()"><i class="fas fa-sync-alt"></i> İsimleri
-                        Değiştir</button>
+                    <button class="btn-save" onclick="updateNames()"><i class="fas fa-sync-alt"></i><span class="btn-text"> İsimleri Değiştir</span></button>
                 </div>
             </div>
 
@@ -511,15 +557,14 @@
                 </div>
                 <div class="card-body">
                     <div class="input-group">
-                        <label for="myLat">Enlem: </label>
-                        <input type="number" id="myLat" step="0.000001">
+                        <label for="myLat"><i class="fas fa-latitude"></i> Enlem: </label>
+                        <input type="number" id="myLat" step="0.000001" placeholder="Örn: 41.0082">
                     </div>
                     <div class="input-group">
-                        <label for="myLon">Boylam: </label>
-                        <input type="number" id="myLon" step="0.000001">
+                        <label for="myLon"><i class="fas fa-longitude"></i> Boylam: </label>
+                        <input type="number" id="myLon" step="0.000001" placeholder="Örn: 28.9784">
                     </div>
-                    <button class="btn-save" onclick="saveMyLocation()"><i class="fas fa-sync-alt"></i> Konumu
-                        Güncelle</button>
+                    <button class="btn-save" onclick="saveMyLocation()"><i class="fas fa-sync-alt"></i><span class="btn-text"> Ev Konumunu Güncelle</span></button>
                 </div>
             </div>
 
@@ -529,12 +574,10 @@
                     <h3>Uzak Sistem Yönetimi</h3>
                 </div>
                 <div class="card-body">
-                    <button class="btn-action" onclick="requestNewLocation()"><i class="fas fa-sync-alt"></i> Güncel
-                        Konum İste</button>
-                    <button class="btn-danger" onclick="triggerOta()"><i class="fas fa-microchip"></i> Yazılım Güncelle
-                        (OTA)</button>
+                    <button class="btn-action" onclick="requestNewLocation()"><i class="fas fa-sync-alt"></i><span class="btn-text"> Güncel Konum İste</span></button>
+                    <button class="btn-danger" onclick="triggerOta()"><i class="fas fa-microchip"></i><span class="btn-text"> Yazılım Güncelle (OTA)</span></button>
                     <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i
-                            class="fas fa-trash-alt"></i> Geçmiş İzleri Temizle</button>
+                            class="fas fa-trash-alt"></i><span class="btn-text"> Geçmiş İzleri Temizle</span></button>
                 </div>
             </div>
         </div>
@@ -542,7 +585,7 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE ENTEGRASYONU (SİZİN BİLGİLERİNİZ) ---
+        // --- 1. FIREBASE ENTEGRASYONU ---
         const firebaseConfig = {
             apiKey: "AIzaSyCM8i8CwLKjZslB5URdV6pZ2YNlAqm7XKY",
             authDomain: "ineklerim-nerede.firebaseapp.com",
@@ -557,31 +600,18 @@
         const database = firebase.database();
         const auth = firebase.auth();
 
-        // --- HARİTA VE BAŞLANGIÇ AYARLARI ---
+        // --- DEĞİŞKEN TANIMLAMALARI (KONTROLLERDEN ÖNCE TANIMLANMALI) ---
         var map = L.map('map');
         var baseLayers = {
             'Sokak': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
             'Uydu': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
         };
         baseLayers['Uydu'].addTo(map);
-        // Haritanın sol alt köşesine Mesafe Göster/Gizle kontrol kutucuğu ekliyoruz
-        var mesafeControl = L.control({ position: 'bottomleft' });
-        mesafeControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.style.backgroundColor = 'white';
-            div.style.padding = '6px';
-            div.style.borderRadius = '4px';
-            div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
-            div.innerHTML = '<label style="font-size: 12px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin: 0;"><input type="checkbox" id="mesafeToggle" checked style="margin-right: 6px; cursor: pointer;" /><span style="vertical-align: middle;">Mesafe Göster</span></label>';
-            L.DomEvent.disableClickPropagation(div); // Tıklatıldığında haritanın kaymasını önler
-            return div;
-        };
-        mesafeControl.addTo(map);
 
         var userMarker = null;
         var default_lat = 41.514270;
         var default_lon = 33.045921;
-        // --- TARAYICI ÖNBELLEĞİNDEN (CACHE) SON BİLİNEN DEĞERLERİ OKU ---
+        
         var cached_lat = localStorage.getItem('home_lat');
         var cached_lon = localStorage.getItem('home_lon');
         var cached_name1 = localStorage.getItem('name_1');
@@ -590,31 +620,101 @@
         var home_lat = cached_lat ? parseFloat(cached_lat) : default_lat;
         var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
 
+        // cihazOzellikleri NESNESİ KONTROLLERDEN ÖNCE TANIMLANMALI
         var cihazOzellikleri = {
             1001: {
-                renk: '#FF5733', ikon: 'fa-cow',
-                isim: cached_name1 || 'İnek 1001',
-                marker: null, polyline: null,
-                homeLine: null, distanceLabel: null,
-                sonGecerliLat: null, sonGecerliLng: null, // Son geçerli konum bellekleri
+                renk: '#FF5733',
+                ikon: 'fa-cow',
+                isim: cached_name1 || 'Simge',
+                marker: null,
+                polyline: null,
+                homeLine: null,
+                distanceLabel: null,
+                sonGecerliLat: null,
+                sonGecerliLng: null,
                 pathPoints: []
             },
             1002: {
-                renk: '#33FF57', ikon: 'fa-cow',
-                isim: cached_name2 || 'İnek 1002',
-                marker: null, polyline: null,
-                homeLine: null, distanceLabel: null,
-                sonGecerliLat: null, sonGecerliLng: null, // Son geçerli konum bellekleri
+                renk: '#33FF57',
+                ikon: 'fa-cow',
+                isim: cached_name2 || 'Cansu',
+                marker: null,
+                polyline: null,
+                homeLine: null,
+                distanceLabel: null,
+                sonGecerliLat: null,
+                sonGecerliLng: null,
                 pathPoints: []
             }
         };
-
 
         var evIkoni = L.divIcon({
             className: 'ev-marker',
             html: '<div style="background:#3498db;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-home" style="font-size:16px;"></i></div>',
             iconSize: [30, 30]
         });
+
+        // --- LEJANT KONTROLLERİ (cihazOzellikleri tanımlandıktan SONRA) ---
+
+        // 1. HARİTA STİLİ KONTROLÜ (SAĞ ÜST)
+		var haritaStiliControl = L.control({ position: 'topright' });
+		haritaStiliControl.onAdd = function (map) {
+			var div = L.DomUtil.create('div', 'map-controls');
+			div.innerHTML = '<button onclick="changeMapStyle(\'streets\')">Sokak</button><button onclick="changeMapStyle(\'satellite\')">Uydu</button>';
+			L.DomEvent.disableClickPropagation(div);
+			return div;
+		};
+		haritaStiliControl.addTo(map);
+
+        // 2. CİHAZ GÖSTER/GİZLE KONTROLÜ (SAĞ ALT)
+        var cihazKontrol = L.control({ position: 'bottomright' });
+        cihazKontrol.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'cihaz-kontrol-paneli');
+
+            Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
+                var ozellik = cihazOzellikleri[cihazNo];
+                
+                var label = document.createElement('label');
+                
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.cihazNo = cihazNo;
+                checkbox.id = 'cihaz_goster_' + cihazNo;
+                
+                checkbox.checked = true;
+                
+                var icon = document.createElement('i');
+                icon.className = 'fas ' + ozellik.ikon;
+                icon.style.color = ozellik.renk;
+                
+                var text = document.createTextNode(' ' + (ozellik.isim || 'İnek ' + cihazNo));
+                
+                label.appendChild(checkbox);
+                label.appendChild(icon);
+                label.appendChild(text);
+                
+                div.appendChild(label);
+            });
+
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.on(div, 'change', handleCihazGosterToggle);
+            return div;
+        };
+        cihazKontrol.addTo(map);
+
+        // 3. MESAFE GÖSTER/GİZLE KONTROLÜ (SOL ALT)
+        var mesafeControl = L.control({ position: 'bottomleft' });
+        mesafeControl.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.style.backgroundColor = 'white';
+            div.style.padding = '6px';
+            div.style.borderRadius = '4px';
+            div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
+            div.innerHTML = '<label style="font-size: 12px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin: 0;"><input type="checkbox" id="mesafeToggle" checked style="margin-right: 6px; cursor: pointer;" /><span style="vertical-align: middle;">Mesafe Göster</span></label>';
+            L.DomEvent.disableClickPropagation(div);
+            return div;
+        };
+        mesafeControl.addTo(map);
 
         // --- 2. GİRİŞ VE OTURUM KONTROLÜ ---
         auth.onAuthStateChanged(function (user) {
@@ -640,16 +740,68 @@
             auth.signOut();
         }
 
-        // --- 3. BULUT VERİ DİNLEME (REAL-TIME STREAM) ---
-        // Aktif Firebase geçmiş dinleyicilerini tutmak için değişkenler
+        // --- CİHAZ GÖSTER/GİZLE İŞLEVİ ---
+        function handleCihazGosterToggle(event) {
+            var checkbox = event.target;
+            var cihazNo = checkbox.dataset.cihazNo;
+            var ozellik = cihazOzellikleri[cihazNo];
+            if (!ozellik) return;
+
+            if (checkbox.checked) {
+                if (ozellik.marker && !map.hasLayer(ozellik.marker)) {
+                    ozellik.marker.addTo(map);
+                }
+                if (ozellik.polyline && !map.hasLayer(ozellik.polyline)) {
+                    ozellik.polyline.addTo(map);
+                }
+                
+                var mesafeGosterilsinMi = document.getElementById('mesafeToggle') ? document.getElementById('mesafeToggle').checked : true;
+                if (mesafeGosterilsinMi) {
+                    if (ozellik.homeLine && !map.hasLayer(ozellik.homeLine)) {
+                        ozellik.homeLine.addTo(map);
+                    }
+                    if (ozellik.distanceLabel && !map.hasLayer(ozellik.distanceLabel)) {
+                        ozellik.distanceLabel.addTo(map);
+                    }
+                }
+            } else {
+                if (ozellik.marker && map.hasLayer(ozellik.marker)) {
+                    map.removeLayer(ozellik.marker);
+                }
+                if (ozellik.polyline && map.hasLayer(ozellik.polyline)) {
+                    map.removeLayer(ozellik.polyline);
+                }
+                if (ozellik.homeLine && map.hasLayer(ozellik.homeLine)) {
+                    map.removeLayer(ozellik.homeLine);
+                }
+                if (ozellik.distanceLabel && map.hasLayer(ozellik.distanceLabel)) {
+                    map.removeLayer(ozellik.distanceLabel);
+                }
+            }
+            
+            updateMapView();
+        }
+
+        function guncelleCihazKontrolPaneli() {
+            Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
+                var checkbox = document.getElementById('cihaz_goster_' + cihazNo);
+                if (checkbox) {
+                    var label = checkbox.parentElement;
+                    var ozellik = cihazOzellikleri[cihazNo];
+                    if (label.lastChild && label.lastChild.nodeType === 3) {
+                        label.lastChild.nodeValue = ' ' + (ozellik.isim || 'İnek ' + cihazNo);
+                    }
+                }
+            });
+        }
+
+        // --- 3. BULUT VERİ DİNLEME ---
         var activeGecmisRefs = {};
 
         function initializeDashboard() {
-            // Haritayı doğrudan son bilinen (cached) konumda başlat (Gecikme ve sıçrama olmaz)
             map.setView([home_lat, home_lon], 16);
             updateUserMarker(home_lat, home_lon);
 
-            // Input alanlarını önbellekteki verilerle hemen doldur (Firebase beklenirken boş kalmazlar)
             document.getElementById('myLat').value = home_lat;
             document.getElementById('myLon').value = home_lon;
             document.getElementById('name_1').value = cihazOzellikleri[1001].isim;
@@ -657,7 +809,6 @@
             document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
             document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
 
-            // Varsayılan tarihi bugünün tarihi olarak ayarla
             var today = new Date().toISOString().split('T')[0];
             var datePicker = document.getElementById('filterDate');
             datePicker.value = today;
@@ -666,7 +817,6 @@
                 loadHistoryByDate(this.value);
             });
 
-            // A) Ayarları Al (İsimler, Modlar, Ev Konumu)
             database.ref('/ayarlar').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
@@ -674,7 +824,6 @@
                         var new_lat = val.konum.enlem;
                         var new_lon = val.konum.boylam;
 
-                        // Eğer buluttaki konum yerel önbellektekinden farklıysa güncelle ve kaydet
                         if (new_lat !== home_lat || new_lon !== home_lon) {
                             home_lat = new_lat;
                             home_lon = new_lon;
@@ -688,8 +837,8 @@
                         }
                     }
                     if (val.isimler) {
-                        var n1 = val.isimler.isim1 || "İnek 1001";
-                        var n2 = val.isimler.isim2 || "İnek 1002";
+                        var n1 = val.isimler.isim1 || "Simge";
+                        var n2 = val.isimler.isim2 || "Cansu";
 
                         if (n1 !== cihazOzellikleri[1001].isim || n2 !== cihazOzellikleri[1002].isim) {
                             cihazOzellikleri[1001].isim = n1;
@@ -702,31 +851,23 @@
                             document.getElementById('name_2').value = n2;
                             document.getElementById('lbl-name1').textContent = n1;
                             document.getElementById('lbl-name2').textContent = n2;
+                            guncelleCihazKontrolPaneli();
                         }
                     }
                     if (val.modlar) {
-                        document.getElementById('mode_1').value = val.modlar.mod1 || 4;
-                        document.getElementById('mode_2').value = val.modlar.mod2 || 4;
+                        document.getElementById('mode_1').value = val.modlar.mod1 || 1;
+                        document.getElementById('mode_2').value = val.modlar.mod2 || 1;
                     }
                 }
             });
 
-            // B) Alıcı (Ev) Durumunu Dinle
             database.ref('/evCihazi').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
-                    document.getElementById('home-time').textContent = val.evSaat || "--:--";
-                    document.getElementById('home-temp').textContent = (val.evSicaklik || 0) + "°C";
-                    var bat_mv = val.evBatarya || 0;
-                    var bat_pct = Math.max(0, Math.min(100, Math.round((bat_mv - 3000) / (4200 - 3000) * 100)));
-                    document.getElementById('home-bat-val').textContent = "%" + bat_pct;
-                    document.getElementById('home-bat-bar').style.width = bat_pct + "%";
-                    document.getElementById('home-rssi').textContent = val.evRssi || "--";
-                    updateRssiBars('home-rssi-bars', val.evRssi);
+                    updateHomePanel(val);
                 }
             });
 
-            // C) Tasmaların Son Konumlarını Dinle (Her zaman anlık en son konumu gösterir)
             database.ref('/cihazlar').on('value', function (snapshot) {
                 var cihazlar = snapshot.val();
                 if (cihazlar) {
@@ -740,25 +881,42 @@
                 }
             });
 
-            // D) Seçilen Tarihe Göre Geçmiş Rotayı Çizdir (İlk açılışta bugünün verilerini yükler)
             loadHistoryByDate(today);
         }
 
-        // Seçilen tarihe göre geçmiş yollarını yükleyen fonksiyon
-        function loadHistoryByDate(selectedDate) {
+        function updateHomePanel(data) {
+            document.getElementById('home-time').textContent = data.evSaat || '--:--';
+            document.getElementById('home-temp').textContent = (data.evSicaklik !== undefined ? data.evSicaklik : '--') + '°C';
+            
+            var batarya = data.evBatarya !== undefined ? data.evBatarya : 0;
+            var batteryLevel = 0;
+            if (batarya > 0) {
+                batteryLevel = Math.max(0, Math.min(100, Math.round((batarya - 3000) / (4200 - 3000) * 100)));
+            }
+            var batteryColor = '#ff4757';
+            if (batteryLevel >= 40) { batteryColor = '#2ed573'; } else if (batteryLevel >= 10) { batteryColor = '#ffa502'; }
+            
+            document.getElementById('home-bat-val').textContent = '%' + batteryLevel;
+            var batBar = document.getElementById('home-bat-bar');
+            batBar.style.width = batteryLevel + '%';
+            batBar.style.background = batteryColor;
+            
+            var rssi = data.evRssi !== undefined ? data.evRssi : 0;
+            document.getElementById('home-rssi').textContent = rssi;
+            updateRssiBars('home-rssi-bars', rssi);
+        }
 
-            // Önce varsa eski aktif Firebase dinleyicilerini kapatıp haritadaki eski çizgileri temizliyoruz
+        function loadHistoryByDate(selectedDate) {
             Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                 if (activeGecmisRefs[cihazNo]) {
-                    activeGecmisRefs[cihazNo].off(); // Eski dinleyiciyi durdur
+                    activeGecmisRefs[cihazNo].off();
                 }
                 if (cihazOzellikleri[cihazNo].polyline) {
-                    map.removeLayer(cihazOzellikleri[cihazNo].polyline); // Haritadaki eski çizgiyi sil
+                    map.removeLayer(cihazOzellikleri[cihazNo].polyline);
                     cihazOzellikleri[cihazNo].polyline = null;
                 }
             });
 
-            // Seçilen tarihe göre her cihaz için yeni dinleyicileri başlatıyoruz
             Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                 var dbPath = '/cihazGecmisi/' + cihazNo + '/' + selectedDate;
                 activeGecmisRefs[cihazNo] = database.ref(dbPath);
@@ -775,19 +933,13 @@
                         });
                         drawPath(cihazNo, noktalar);
 
-                        // --- AKILLI BAŞLANGIÇ DESTEĞİ ---
-                        // Eğer geçmişte geçerli konumlar varsa ve cihaz şu an 0,0 veriyorsa,
-                        // haritadaki işareti ve mesafeyi geçmişteki en son gerçek konuma çizdir:
                         if (noktalar.length > 0) {
                             var sonGercekNokta = noktalar[noktalar.length - 1];
                             var ozellik = cihazOzellikleri[cihazNo];
                             if (ozellik) {
-                                // Eğer henüz anlık geçerli bir konum alınmadıysa geçmişteki son noktayı bellek olarak kullan
                                 if (!ozellik.sonGecerliLat || !ozellik.sonGecerliLng) {
                                     ozellik.sonGecerliLat = sonGercekNokta[0];
                                     ozellik.sonGecerliLng = sonGercekNokta[1];
-
-                                    // İşaretçiyi ve mesafeyi bu gerçek noktaya göre haritada güncelle
                                     updateMapMarker(cihazNo, sonGercekNokta[0], sonGercekNokta[1]);
                                 }
                             }
@@ -801,8 +953,8 @@
                 });
             });
         }
-        // --- 4. VERİ YAZMA VE AYAR GÜNCELLEME İŞLEMLERİ ---
 
+        // --- 4. VERİ YAZMA VE AYAR GÜNCELLEME İŞLEMLERİ ---
         function saveMyLocation() {
             var lat = parseFloat(document.getElementById('myLat').value);
             var lon = parseFloat(document.getElementById('myLon').value);
@@ -858,12 +1010,9 @@
         }
 
         // --- 5. HARİTA VE ARAYÜZ YARDIMCILARI ---
-
         function updateUserMarker(lat, lng) {
             if (userMarker) map.removeLayer(userMarker);
             userMarker = L.marker([lat, lng], { icon: evIkoni, zIndexOffset: 1000 }).addTo(map);
-
-            // Konum her yüklendiğinde veya değiştiğinde haritayı odakla:
             updateMapView();
         }
 
@@ -871,18 +1020,14 @@
             var ozellik = cihazOzellikleri[cihazNo];
             if (!ozellik) return;
 
-            // --- KOORDİNAT BELLEK KONTROLÜ ---
             if (lat !== 0 && lng !== 0) {
-                // Gelen konum geçerli ise bunu "Son Geçerli Konum" olarak belleğe al
                 ozellik.sonGecerliLat = lat;
                 ozellik.sonGecerliLng = lng;
             } else {
-                // Gelen konum 0,0 (geçersiz) ise, bellekteki son gerçek konumu kullan
                 if (ozellik.sonGecerliLat && ozellik.sonGecerliLng) {
                     lat = ozellik.sonGecerliLat;
                     lng = ozellik.sonGecerliLng;
                 } else {
-                    // Eğer bellekte de hiç gerçek konum yoksa (örn. ilk açılışta), çizim yapma
                     return;
                 }
             }
@@ -893,39 +1038,40 @@
                 iconSize: [30, 30]
             });
 
-            if (userMarkerExists(ozellik.marker)) {
+            if (ozellik.marker && map.hasLayer(ozellik.marker)) {
                 map.removeLayer(ozellik.marker);
             }
+            
             ozellik.marker = L.marker([lat, lng], { icon: cihazIkoni }).addTo(map)
                 .bindPopup("<b>" + ozellik.isim + "</b><br>Enlem: " + lat.toFixed(6) + "<br>Boylam: " + lng.toFixed(6));
 
-            // --- EVE OLAN UZAKLIĞI HESAPLAMA ---
-            if (ozellik.homeLine) map.removeLayer(ozellik.homeLine);
-            if (ozellik.distanceLabel) map.removeLayer(ozellik.distanceLabel);
+            if (ozellik.homeLine && map.hasLayer(ozellik.homeLine)) map.removeLayer(ozellik.homeLine);
+            if (ozellik.distanceLabel && map.hasLayer(ozellik.distanceLabel)) map.removeLayer(ozellik.distanceLabel);
 
-            var homeLatLng = L.latLng(home_lat, home_lon);
-            var deviceLatLng = L.latLng(lat, lng);
-            var distMeters = homeLatLng.distanceTo(deviceLatLng);
-            var distStr = (distMeters >= 1000) ? (distMeters / 1000).toFixed(2) + " km" : Math.round(distMeters) + " m";
+            var dist = calculateDistance(home_lat, home_lon, lat, lng);
+            var distStr = (dist / 1000).toFixed(2) + " km";
+            var midPoint = [(home_lat + lat) / 2, (home_lon + lng) / 2];
 
             ozellik.homeLine = L.polyline([[home_lat, home_lon], [lat, lng]], {
                 color: '#3498db',
-                dashArray: '6, 12',
-                weight: 2,
-                opacity: 0.8
+                dashArray: '5, 5',
+                weight: 2
             });
 
-            var midPoint = [(home_lat + lat) / 2, (home_lon + lng) / 2];
             ozellik.distanceLabel = L.tooltip({
                 permanent: true,
                 direction: 'center',
                 className: 'distance-label'
             })
-                .setLatLng(midPoint)
-                .setContent("<b>" + distStr + "</b>");
+            .setLatLng(midPoint)
+            .setContent('<b>' + distStr + '</b>');
 
-            var mesafeGosterilsinMi = document.getElementById('mesafeToggle') ? document.getElementById('mesafeToggle').checked : true;
-            if (mesafeGosterilsinMi) {
+            var cihazGosteriliyor = document.getElementById('cihaz_goster_' + cihazNo) ? 
+                document.getElementById('cihaz_goster_' + cihazNo).checked : false;
+            var mesafeGosterilsinMi = document.getElementById('mesafeToggle') ? 
+                document.getElementById('mesafeToggle').checked : true;
+
+            if (cihazGosteriliyor && mesafeGosterilsinMi) {
                 ozellik.homeLine.addTo(map);
                 ozellik.distanceLabel.addTo(map);
             }
@@ -933,35 +1079,42 @@
             updateMapView();
         }
 
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371e3;
+            var toRad = function (x) { return x * Math.PI / 180; };
+            var φ1 = toRad(lat1);
+            var φ2 = toRad(lat2);
+            var Δφ = toRad(lat2 - lat1);
+            var Δλ = toRad(lon2 - lon1);
+            var a = Math.pow(Math.sin(Δφ / 2), 2) + Math.cos(φ1) * Math.cos(φ2) * Math.pow(Math.sin(Δλ / 2), 2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
         function updateMapView() {
             var bounds = L.latLngBounds([]);
             var activeElements = false;
 
-            // 1. Ev konumunu kapsama alanına ekle
             if (userMarker) {
                 bounds.extend(userMarker.getLatLng());
                 activeElements = true;
             }
 
-            // 2. Haritada aktif olan (gösterilen) tasma konumlarını kapsama alanına ekle
             Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                 var ozellik = cihazOzellikleri[cihazNo];
                 if (ozellik && ozellik.marker && map.hasLayer(ozellik.marker)) {
                     bounds.extend(ozellik.marker.getLatLng());
                     activeElements = true;
                 }
+                if (ozellik && ozellik.polyline && map.hasLayer(ozellik.polyline)) {
+                    bounds.extend(ozellik.polyline.getBounds());
+                    activeElements = true;
+                }
             });
 
-            // 3. Haritayı bu sınırlara göre otomatik yakınlaştır ve ortala
             if (activeElements && bounds.isValid()) {
-                // padding: [50, 50] -> kenarlardan 50'şer piksel pay bırakır (görsel rahatlık için)
-                // maxZoom: 16 -> eğer sadece tek bir nokta varsa ekranın aşırı yakınlaşmasını önler
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
             }
-        }
-
-        function userMarkerExists(marker) {
-            return marker instanceof L.Marker && map.hasLayer(marker);
         }
 
         function drawPath(cihazNo, noktalar) {
@@ -973,18 +1126,30 @@
             ozellik.polyline = L.polyline(noktalar, {
                 color: ozellik.renk,
                 weight: 4,
-                opacity: 0.7
-            }).addTo(map);
+                opacity: 0.7,
+                smoothFactor: 1
+            });
+
+            var cihazGosteriliyor = document.getElementById('cihaz_goster_' + cihazNo) ? 
+                document.getElementById('cihaz_goster_' + cihazNo).checked : false;
+            if (cihazGosteriliyor) {
+                ozellik.polyline.addTo(map);
+            }
         }
 
         function updateDeviceInfo(cihazNo, data) {
             document.getElementById('time-' + cihazNo).textContent = data.saat || "--:--";
-            document.getElementById('temp-' + cihazNo).textContent = (data.sicaklik || 0) + "°C";
+            document.getElementById('temp-' + cihazNo).textContent = (data.sicaklik !== undefined ? data.sicaklik : '--') + '°C';
 
             var bat_mv = data.batarya || 0;
             var bat_pct = Math.max(0, Math.min(100, Math.round((bat_mv - 3000) / (4150 - 3000) * 100)));
-            document.getElementById('bat-val-' + cihazNo).textContent = "%" + bat_pct;
-            document.getElementById('bat-bar-' + cihazNo).style.width = bat_pct + "%";
+            document.getElementById('bat-val-' + cihazNo).textContent = '%' + bat_pct;
+            var batBar = document.getElementById('bat-bar-' + cihazNo);
+            batBar.style.width = bat_pct + '%';
+            
+            var batteryColor = '#ff4757';
+            if (bat_pct >= 40) { batteryColor = '#2ed573'; } else if (bat_pct >= 10) { batteryColor = '#ffa502'; }
+            batBar.style.background = batteryColor;
 
             document.getElementById('rssi-' + cihazNo).textContent = data.rssi || "--";
             updateRssiBars('rssi-bars-' + cihazNo, data.rssi);
@@ -994,14 +1159,15 @@
             var container = document.getElementById(containerId);
             if (!container) return;
             var bars = container.getElementsByTagName('div');
-            var color = '#ccc';
-
-            if (rssi >= -70) { color = '#2ed573'; }
-            else if (rssi >= -85) { color = '#ffa502'; }
-            else { color = '#ff4757'; }
+            var barColors = ['#ccc', '#ccc', '#ccc', '#ccc'];
+            
+            if (rssi >= -70) { barColors = ['#2ed573', '#2ed573', '#2ed573', '#2ed573']; }
+            else if (rssi >= -85) { barColors = ['#2ed573', '#2ed573', '#2ed573', '#ccc']; }
+            else if (rssi >= -100) { barColors = ['#2ed573', '#2ed573', '#ccc', '#ccc']; }
+            else { barColors = ['#2ed573', '#ccc', '#ccc', '#ccc']; }
 
             for (var i = 0; i < bars.length; i++) {
-                bars[i].style.backgroundColor = color;
+                bars[i].style.background = barColors[i];
             }
         }
 
@@ -1018,7 +1184,7 @@
             statusElement.style.display = "block";
             setTimeout(function () { statusElement.style.display = "none"; }, 4000);
         }
-        // Mesafe kutucuğunun işaretlenme durumuna göre çizgileri göster/gizle
+
         document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'mesafeToggle') {
                 var goster = e.target.checked;
@@ -1026,12 +1192,13 @@
                 Object.keys(cihazOzellikleri).forEach(function (cihazNo) {
                     var ozellik = cihazOzellikleri[cihazNo];
                     if (ozellik) {
-                        if (goster) {
-                            // İşaretliyse ve çizgiler varsa haritaya ekle
+                        var cihazGosteriliyor = document.getElementById('cihaz_goster_' + cihazNo) ? 
+                            document.getElementById('cihaz_goster_' + cihazNo).checked : false;
+                        
+                        if (goster && cihazGosteriliyor) {
                             if (ozellik.homeLine && !map.hasLayer(ozellik.homeLine)) ozellik.homeLine.addTo(map);
                             if (ozellik.distanceLabel && !map.hasLayer(ozellik.distanceLabel)) ozellik.distanceLabel.addTo(map);
                         } else {
-                            // İşaretli değilse haritadan kaldır (ancak hafızada saklamaya devam et)
                             if (ozellik.homeLine && map.hasLayer(ozellik.homeLine)) map.removeLayer(ozellik.homeLine);
                             if (ozellik.distanceLabel && map.hasLayer(ozellik.distanceLabel)) map.removeLayer(ozellik.distanceLabel);
                         }
