@@ -214,6 +214,14 @@
 
         <!-- HARİTA -->
         <div style="position: relative;">
+            <!-- Tarih Seçici Bölümü -->
+            <div
+                style="margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <label for="filterDate" style="font-weight: bold; color: #2c3e50; font-size: 14px;"><i
+                        class="fas fa-calendar-alt"></i> İzleme Tarihi:</label>
+                <input type="date" id="filterDate"
+                    style="padding: 6px 12px; border: 1px solid #3498db; border-radius: 6px; font-weight: bold; color: #2c3e50; outline: none;">
+            </div>
             <div id='map'></div>
             <div class="map-controls">
                 <button onclick="changeMapStyle('streets')">Sokak</button>
@@ -360,9 +368,22 @@
         }
 
         // --- 3. BULUT VERİ DİNLEME (REAL-TIME STREAM) ---
+        // Aktif Firebase geçmiş dinleyicilerini tutmak için değişkenler
+        var activeGecmisRefs = {};
+
         function initializeDashboard() {
             map.setView([home_lat, home_lon], 16);
             updateUserMarker(home_lat, home_lon);
+
+            // Varsayılan tarihi bugünün tarihi olarak ayarla (YYYY-MM-DD formatında)
+            var today = new Date().toISOString().split('T')[0];
+            var datePicker = document.getElementById('filterDate');
+            datePicker.value = today;
+
+            // Tarih değiştiğinde tetiklenecek olay
+            datePicker.addEventListener('change', function() {
+                loadHistoryByDate(this.value);
+            });
 
             // A) Ayarları Al (İsimler, Modlar, Ev Konumu)
             database.ref('/ayarlar').on('value', function(snapshot) {
@@ -396,50 +417,73 @@
                 if (val) {
                     document.getElementById('home-time').textContent = val.evSaat || "--:--";
                     document.getElementById('home-temp').textContent = (val.evSicaklik || 0) + "°C";
-                    
                     var bat_mv = val.evBatarya || 0;
                     var bat_pct = Math.max(0, Math.min(100, Math.round((bat_mv - 3000) / (4200 - 3000) * 100)));
                     document.getElementById('home-bat-val').textContent = "%" + bat_pct;
                     document.getElementById('home-bat-bar').style.width = bat_pct + "%";
-                    
                     document.getElementById('home-rssi').textContent = val.evRssi || "--";
                     updateRssiBars('home-rssi-bars', val.evRssi);
                 }
             });
 
-            // C) Tasmaların Son Konumlarını Dinle
+            // C) Tasmaların Son Konumlarını Dinle (Her zaman anlık en son konumu gösterir)
             database.ref('/cihazlar').on('value', function(snapshot) {
                 var cihazlar = snapshot.val();
                 if (cihazlar) {
                     Object.keys(cihazlar).forEach(function(cihazNo) {
-                        var veri = cihazlar[cihazNo].sonKonum;
-                        if (veri) {
-                            updateDeviceInfo(cihazNo, veri);
-                            updateMapMarker(cihazNo, veri.enlem, veri.boylam);
+                        var data = cihazlar[cihazNo].sonKonum;
+                        if (data) {
+                            updateDeviceInfo(cihazNo, data);
+                            updateMapMarker(cihazNo, data.enlem, data.boylam);
                         }
                     });
                 }
             });
 
-            // D) Geçmiş Konum İzlerini Dinle
-            database.ref('/cihazGecmisi').on('value', function(snapshot) {
-                var gecmis = snapshot.val();
-                if (gecmis) {
-                    Object.keys(gecmis).forEach(function(cihazNo) {
-                        var noktalar = [];
-                        var pushGecmisi = gecmis[cihazNo];
-                        Object.keys(pushGecmisi).forEach(function(key) {
-                            var n = pushGecmisi[key];
-                            if (n.enlem && n.boylam) {
-                                noktalar.push([n.enlem, n.boylam]);
+            // D) Seçilen Tarihe Göre Geçmiş Rotayı Çizdir (İlk açılışta bugünün verilerini yükler)
+            loadHistoryByDate(today);
+        }
+
+        // Seçilen tarihe göre geçmiş yollarını yükleyen fonksiyon
+        function loadHistoryByDate(selectedDate) {
+
+            // Önce varsa eski aktif Firebase dinleyicilerini kapatıp haritadaki eski çizgileri temizliyoruz
+            Object.keys(cihazOzellikleri).forEach(function(cihazNo) {
+                if (activeGecmisRefs[cihazNo]) {
+                    activeGecmisRefs[cihazNo].off(); // Eski dinleyiciyi durdur
+                }
+                if (cihazOzellikleri[cihazNo].polyline) {
+                    map.removeLayer(cihazOzellikleri[cihazNo].polyline); // Haritadaki eski çizgiyi sil
+                    cihazOzellikleri[cihazNo].polyline = null;
+                }
+            });
+
+            // Seçilen tarihe göre her cihaz için yeni dinleyicileri (listener) başlatıyoruz
+            Object.keys(cihazOzellikleri).forEach(function(cihazNo) {
+                var dbPath = '/cihazGecmisi/' + cihazNo + '/' + selectedDate;
+                activeGecmisRefs[cihazNo] = database.ref(dbPath);
+
+                activeGecmisRefs[cihazNo].on('value', function(snapshot) {
+                    var noktalar = [];
+                    var gunlukVeri = snapshot.val();
+                    if (gunlukVeri) {
+                        Object.keys(gunlukVeri).forEach(function(key) {
+                            var pt = gunlukVeri[key];
+                            if (pt.enlem && pt.boylam) {
+                                noktalar.push([pt.enlem, pt.boylam]);
                             }
                         });
                         drawPath(cihazNo, noktalar);
-                    });
-                }
+                    } else {
+                        // Eğer o güne ait konum verisi yoksa haritadaki çizgiyi temizle
+                        if (cihazOzellikleri[cihazNo].polyline) {
+                            map.removeLayer(cihazOzellikleri[cihazNo].polyline);
+                            cihazOzellikleri[cihazNo].polyline = null;
+                        }
+                    }
+                });
             });
         }
-
         // --- 4. VERİ YAZMA VE AYAR GÜNCELLEME İŞLEMLERİ ---
 
         function saveMyLocation() {
