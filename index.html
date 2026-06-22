@@ -257,7 +257,7 @@
         }
 
         .input-group label {
-            width: 85px;
+            width: 95px;
             font-weight: 600;
             color: #555;
             font-size: 13px;
@@ -502,6 +502,13 @@
             </div>
         </div>
 
+        <!-- MİSAFİR KULLANICI İÇİN ÇIKIŞ BUTONU (Sadece Guest rolünde görünür) -->
+        <div id="guest-logout-container" style="display: none; margin: 15px 0; text-align: center;">
+            <button class="btn-danger" style="background: #7f8c8d; max-width: 300px; margin: 0 auto; display: flex;" onclick="logoutUser()">
+                <i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span>
+            </button>
+        </div>
+
         <!-- HARİTA -->
         <div style="position: relative;">
             <!-- Tarih Seçici Bölümü -->
@@ -583,45 +590,48 @@
                 </div>
             </div>
 
-            <!-- Veri Kartı -->
+            <!-- Veri Kartı / Uzak Sistem Yönetimi -->
             <div class="card" id="card-yonetim">
                 <div class="card-header"><i class="fas fa-database"></i>
                     <h3>Uzak Sistem Yönetimi</h3>
                 </div>
                 <div class="card-body">
                     <button class="btn-action" onclick="requestNewLocation()"><i class="fas fa-sync-alt"></i><span class="btn-text"> Güncel Konum İste</span></button>
-                    <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i
-                            class="fas fa-trash-alt"></i><span class="btn-text"> Geçmiş İzleri Temizle</span></button>
+                    <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i class="fas fa-trash-alt"></i><span class="btn-text"> Geçmiş İzleri Temizle</span></button>
+                    <button class="btn-danger" style="background: #7f8c8d; margin-top: 10px;" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span></button>
                 </div>
             </div>
 
-            <!-- Yeni Güncelleme ve Oturum Kartı -->
+            <!-- Güncelleme ve Sürüm Kontrol Kartı -->
             <div class="card" id="card-guncelleme">
                 <div class="card-header"><i class="fas fa-microchip"></i>
-                    <h3>Yazılım & Oturum Yönetimi</h3>
+                    <h3>Yazılım & Sürüm Kontrolü</h3>
                 </div>
                 <div class="card-body">
+                    <!-- Aktif Sürümler -->
                     <div class="version-box">
                         <div class="version-row">
                             <span><b>Mevcut Cihaz Yazılımı:</b></span>
                             <span id="ver-current-app">--</span>
                         </div>
                         <div class="version-row">
-                            <span><b>Hedef Yazılım (Bulut):</b></span>
-                            <span id="ver-target-app" style="color: #2980b9; font-weight: bold;">--</span>
-                        </div>
-                        <div class="version-divider"></div>
-                        <div class="version-row">
-                            <span><b>Mevcut Dosya Sistemi (FS):</b></span>
+                            <span><b>Mevcut Dosya Sistemi:</b></span>
                             <span id="ver-current-fs">--</span>
                         </div>
-                        <div class="version-row">
-                            <span><b>Hedef FS (Bulut):</b></span>
-                            <span id="ver-target-fs" style="color: #2980b9; font-weight: bold;">--</span>
-                        </div>
                     </div>
-                    <button id="btn-ota-guncelleme" class="btn-danger" onclick="triggerOta()"><i class="fas fa-microchip"></i><span class="btn-text"> Yazılım Güncelle (OTA)</span></button>
-                    <button class="btn-danger" style="background: #7f8c8d; margin-top: 10px;" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span></button>
+
+                    <!-- Hedef Sürüm Girdileri (Input) -->
+                    <div class="input-group">
+                        <label for="target_app_input">Hedef Yazılım: </label>
+                        <input type="text" id="target_app_input" placeholder="Örn: 1.0.2">
+                    </div>
+                    <div class="input-group">
+                        <label for="target_fs_input">Hedef FS: </label>
+                        <input type="text" id="target_fs_input" placeholder="Örn: 1.0.2">
+                    </div>
+
+                    <button id="btn-save-versions" class="btn-save" onclick="saveTargetVersions()"><i class="fas fa-save"></i><span class="btn-text"> Hedef Sürümleri Kaydet</span></button>
+                    <button id="btn-ota-guncelleme" class="btn-danger" style="margin-top: 10px;" onclick="triggerOta()"><i class="fas fa-arrow-alt-circle-up"></i><span class="btn-text"> Yazılım Güncelle (OTA)</span></button>
                 </div>
             </div>
         </div>
@@ -664,8 +674,8 @@
         var home_lat = cached_lat ? parseFloat(cached_lat) : default_lat;
         var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
 
-        var viewingDate = ""; // Seçilen aktif tarih
-        var initialBoundsSet = false; // Haritanın otomatik odaklanma kilidi
+        var viewingDate = ""; 
+        var initialBoundsSet = false; 
 
         var cihazOzellikleri = {
             1001: {
@@ -679,7 +689,7 @@
                 sonGecerliLat: null,
                 sonGecerliLng: null,
                 pathPoints: [],
-                nodeMarkers: [] // Düğümler için dizi
+                nodeMarkers: [] 
             },
             1002: {
                 renk: '#33FF57',
@@ -692,7 +702,7 @@
                 sonGecerliLat: null,
                 sonGecerliLng: null,
                 pathPoints: [],
-                nodeMarkers: [] // Düğümler için dizi
+                nodeMarkers: [] 
             }
         };
 
@@ -766,9 +776,8 @@
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('main-dashboard').style.display = 'block';
                 
-                applyRoleRestrictions('guest'); // Varsayılan en güvenli mod
+                applyRoleRestrictions('guest'); 
                 
-                // Rolü Firebase'den sorguluyoruz
                 database.ref('/kullanicilar/' + user.uid).once('value', function(snapshot) {
                     var userData = snapshot.val();
                     var role = (userData && userData.rol) ? userData.rol : 'guest';
@@ -787,23 +796,32 @@
         function applyRoleRestrictions(role) {
             console.log("Mevcut Oturum Rolü:", role);
             
-            // Tüm alanları sıfırla
-            document.getElementById('card-container-wrapper').style.display = 'grid';
-            document.getElementById('card-modlar').style.display = 'block';
-            document.getElementById('card-isimler').style.display = 'block';
-            document.getElementById('card-konum').style.display = 'block';
-            document.getElementById('card-yonetim').style.display = 'block';
-            document.getElementById('card-guncelleme').style.display = 'block';
+            var guestLogout = document.getElementById('guest-logout-container');
+            var cardContainer = document.getElementById('card-container-wrapper');
+            var btnSaveVersions = document.getElementById('btn-save-versions');
+            var btnOta = document.getElementById('btn-ota-guncelleme');
+            var inputApp = document.getElementById('target_app_input');
+            var inputFs = document.getElementById('target_fs_input');
+
+            cardContainer.style.display = 'grid';
+            guestLogout.style.display = 'none';
             
-            var otaBtn = document.getElementById('btn-ota-guncelleme');
-            if (otaBtn) otaBtn.style.display = 'flex';
+            if (btnSaveVersions) btnSaveVersions.style.display = 'flex';
+            if (btnOta) btnOta.style.display = 'flex';
+            
+            inputApp.disabled = false;
+            inputFs.disabled = false;
 
             if (role === 'guest') {
-                // Misafir sadece harita ve barları görebilir
-                document.getElementById('card-container-wrapper').style.display = 'none';
+                // Misafir sadece harita ve barları görebilir, oturum kapatma butonu açılır
+                cardContainer.style.display = 'none';
+                guestLogout.style.display = 'block';
             } else if (role === 'user') {
-                // Standart kullanıcı ayarları yönetebilir ama OTA güncellemesi tetikleyemez
-                if (otaBtn) otaBtn.style.display = 'none';
+                // Standart kullanıcı ayarları yönetebilir ama güncelleme parametrelerini değiştiremez ve OTA tetikleyemez
+                if (btnSaveVersions) btnSaveVersions.style.display = 'none';
+                if (btnOta) btnOta.style.display = 'none';
+                inputApp.disabled = true;
+                inputFs.disabled = true;
             } else if (role === 'admin') {
                 // Admin her şeye tam erişebilir
             }
@@ -899,7 +917,7 @@
             document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
             document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
 
-            // Firebase'den kaydedilmiş geçmiş tarihleri tarayıp otomatik olarak SON GÜNÜ seçme mekanizması:
+            // Geçmiş tarihleri tarayıp son geçerli günü getiren mekanizma
             database.ref('/cihazGecmisi').once('value', function (snapshot) {
                 var gecmis = snapshot.val();
                 var tarihler = [];
@@ -915,12 +933,10 @@
                     });
                 }
 
-                // Veritabanında kayıt yoksa bugünü listeye ekle
                 if (tarihler.indexOf(today) === -1) {
                     tarihler.push(today);
                 }
 
-                // Tarihleri kronolojik sıralayıp son elemanı (en güncel günü) buluyoruz
                 tarihler.sort();
                 var sonGecerliTarih = tarihler[tarihler.length - 1];
 
@@ -930,7 +946,7 @@
 
                 datePicker.addEventListener('change', function () {
                     viewingDate = this.value;
-                    initialBoundsSet = false; // Tarih değiştiğinde haritayı yeniden ortala
+                    initialBoundsSet = false; 
                     loadHistoryByDate(this.value);
                 });
 
@@ -987,22 +1003,21 @@
                 var val = snapshot.val();
                 if (val) {
                     updateHomePanel(val);
-                    // Mevcut yazılım sürüm bilgilerini göstergeye yerleştiriyoruz
                     document.getElementById('ver-current-app').textContent = val.evVersiyon || 'Bilinmiyor';
                     document.getElementById('ver-current-fs').textContent = val.evFsVersiyon || 'Bilinmiyor';
                 }
             });
 
-            // Hedef Versiyonlar Dinleyicisi (Geliştirici Sürüm Kartı İçin)
+            // Hedef Sürümler Dinleyicisi
             database.ref('/guncelleme').on('value', function (snapshot) {
                 var val = snapshot.val();
                 if (val) {
-                    document.getElementById('ver-target-app').textContent = val.versiyon || '--';
-                    document.getElementById('ver-target-fs').textContent = val.fs_versiyon || '--';
+                    document.getElementById('target_app_input').value = val.versiyon || '';
+                    document.getElementById('target_fs_input').value = val.fs_versiyon || '';
                 }
             });
 
-            // Canlı Cihaz Konum Takipçisi (Yalnızca seçili tarih bugün ise etkilidir)
+            // Canlı Cihaz Konum Takipçisi
             database.ref('/cihazlar').on('value', function (snapshot) {
                 var cihazlar = snapshot.val();
                 var todayStr = new Date().toISOString().split('T')[0];
@@ -1012,8 +1027,6 @@
                         var data = cihazlar[cihazNo].sonKonum;
                         if (data) {
                             updateDeviceInfo(cihazNo, data);
-                            
-                            // Seçili tarih bugün ise canlı konumu haritada güncelle
                             if (viewingDate === todayStr) {
                                 updateMapMarker(cihazNo, data.enlem, data.boylam);
                             }
@@ -1054,7 +1067,6 @@
                     map.removeLayer(cihazOzellikleri[cihazNo].polyline);
                     cihazOzellikleri[cihazNo].polyline = null;
                 }
-                // Eski düğümleri kaldır
                 if (cihazOzellikleri[cihazNo].nodeMarkers) {
                     cihazOzellikleri[cihazNo].nodeMarkers.forEach(function(m) {
                         map.removeLayer(m);
@@ -1079,7 +1091,6 @@
                         });
                         drawPath(cihazNo, noktalar);
 
-                        // Eğer geçmiş bir tarihi inceliyorsak, marker ve mesafe çizgilerini o günün son konumuna taşıyoruz
                         var todayStr = new Date().toISOString().split('T')[0];
                         if (viewingDate !== todayStr && noktalar.length > 0) {
                             var sonGercekNokta = noktalar[noktalar.length - 1];
@@ -1091,7 +1102,6 @@
                             cihazOzellikleri[cihazNo].polyline = null;
                         }
 
-                        // Geçmiş güne ait veri yoksa ve bugün değilsek haritadaki eski markerları kaldırıyoruz
                         var todayStr = new Date().toISOString().split('T')[0];
                         if (viewingDate !== todayStr) {
                             removeCihazMapElements(cihazNo);
@@ -1139,6 +1149,23 @@
             database.ref('/ayarlar/modlar').set({ mod1: m1, mod2: m2 })
                 .then(function () { showStatus("Çalışma modları güncellendi.", "success"); })
                 .catch(function (err) { showStatus("Hata: " + err.message, "error"); });
+        }
+
+        function saveTargetVersions() {
+            var targetApp = document.getElementById('target_app_input').value.trim();
+            var targetFs = document.getElementById('target_fs_input').value.trim();
+            
+            if (!targetApp || !targetFs) {
+                showStatus("Lütfen her iki alan için de sürüm bilgisi girin.", "error");
+                return;
+            }
+            
+            database.ref('/guncelleme').set({
+                versiyon: targetApp,
+                fs_versiyon: targetFs
+            })
+            .then(function () { showStatus("Hedef sürümler güncellendi.", "success"); })
+            .catch(function (err) { showStatus("Hata: " + err.message, "error"); });
         }
 
         function requestNewLocation() {
@@ -1288,7 +1315,6 @@
 
             if (ozellik.polyline) map.removeLayer(ozellik.polyline);
             
-            // Eski düğümleri haritadan sil
             if (ozellik.nodeMarkers) {
                 ozellik.nodeMarkers.forEach(function(m) {
                     map.removeLayer(m);
@@ -1309,7 +1335,6 @@
             if (cihazGosteriliyor) {
                 ozellik.polyline.addTo(map);
 
-                // Düğüm ekleme (Son konum hariç)
                 for (var i = 0; i < noktalar.length - 1; i++) {
                     var nodeMarker = L.circleMarker(noktalar[i], {
                         radius: 4,
@@ -1373,7 +1398,6 @@
             setTimeout(function () { statusElement.style.display = "none"; }, 4000);
         }
 
-        // Mesafe Göster/Gizle Seçim Listener'ı
         document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'mesafeToggle') {
                 var goster = e.target.checked;
