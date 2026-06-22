@@ -415,6 +415,12 @@
         <input type="email" id="login-email" class="login-input" placeholder="E-posta Adresi">
         <input type="password" id="login-password" class="login-input" placeholder="Şifre">
         <button onclick="loginUser()" class="btn-action" style="margin-top: 15px;">Giriş Yap</button>
+        
+        <!-- Misafir Giriş Butonu -->
+        <button onclick="loginAsGuest()" class="btn-action" style="margin-top: 10px; background: linear-gradient(135deg, #7f8c8d, #95a5a6);">
+            <i class="fas fa-user-shield"></i> Misafir Girişi
+        </button>
+        
         <div id="login-error" style="color: red; text-align: center; margin-top: 10px; font-size: 13px;"></div>
     </div>
 
@@ -502,13 +508,6 @@
             </div>
         </div>
 
-        <!-- MİSAFİR KULLANICI İÇİN ÇIKIŞ BUTONU (Sadece Guest rolünde görünür) -->
-        <div id="guest-logout-container" style="display: none; margin: 15px 0; text-align: center;">
-            <button class="btn-danger" style="background: #7f8c8d; max-width: 300px; margin: 0 auto; display: flex;" onclick="logoutUser()">
-                <i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span>
-            </button>
-        </div>
-
         <!-- HARİTA -->
         <div style="position: relative;">
             <!-- Tarih Seçici Bölümü -->
@@ -520,6 +519,13 @@
                     style="padding: 6px 12px; border: 1px solid #3498db; border-radius: 6px; font-weight: bold; color: #2c3e50; outline: none;">
             </div>
             <div id='map'></div>
+        </div>
+
+        <!-- MİSAFİR KULLANICI İÇİN ÇIKIŞ BUTONU (Haritanın altında yer alacak şekilde ayarlandı) -->
+        <div id="guest-logout-container" style="display: none; margin: 20px 0; text-align: center;">
+            <button class="btn-danger" style="background: #7f8c8d; width: 100%; max-width: 300px; margin: 0 auto; display: flex;" onclick="logoutUser()">
+                <i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span>
+            </button>
         </div>
 
         <!-- KONTROL KARTLARI -->
@@ -597,12 +603,13 @@
                 </div>
                 <div class="card-body">
                     <button class="btn-action" onclick="requestNewLocation()"><i class="fas fa-sync-alt"></i><span class="btn-text"> Güncel Konum İste</span></button>
-                    <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i class="fas fa-trash-alt"></i><span class="btn-text"> Geçmiş İzleri Temizle</span></button>
+                    <button class="btn-danger" style="background: #e67e22;" onclick="clearHistory()"><i
+                            class="fas fa-trash-alt"></i><span class="btn-text"> Geçmiş İzleri Temizle</span></button>
                     <button class="btn-danger" style="background: #7f8c8d; margin-top: 10px;" onclick="logoutUser()"><i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span></button>
                 </div>
             </div>
 
-            <!-- Güncelleme ve Sürüm Kontrol Kartı -->
+            <!-- Güncelleme ve Sürüm Kontrol Kartı (Sadece Admin yetkisinde görünür) -->
             <div class="card" id="card-guncelleme">
                 <div class="card-header"><i class="fas fa-microchip"></i>
                     <h3>Yazılım & Sürüm Kontrolü</h3>
@@ -798,32 +805,31 @@
             
             var guestLogout = document.getElementById('guest-logout-container');
             var cardContainer = document.getElementById('card-container-wrapper');
-            var btnSaveVersions = document.getElementById('btn-save-versions');
-            var btnOta = document.getElementById('btn-ota-guncelleme');
-            var inputApp = document.getElementById('target_app_input');
-            var inputFs = document.getElementById('target_fs_input');
+            
+            var cardModlar = document.getElementById('card-modlar');
+            var cardIsimler = document.getElementById('card-isimler');
+            var cardKonum = document.getElementById('card-konum');
+            var cardYonetim = document.getElementById('card-yonetim');
+            var cardGuncelleme = document.getElementById('card-guncelleme');
 
+            // Görünürlük ayarlarını sıfırlama
             cardContainer.style.display = 'grid';
+            cardModlar.style.display = 'block';
+            cardIsimler.style.display = 'block';
+            cardKonum.style.display = 'block';
+            cardYonetim.style.display = 'block';
+            cardGuncelleme.style.display = 'block';
             guestLogout.style.display = 'none';
-            
-            if (btnSaveVersions) btnSaveVersions.style.display = 'flex';
-            if (btnOta) btnOta.style.display = 'flex';
-            
-            inputApp.disabled = false;
-            inputFs.disabled = false;
 
             if (role === 'guest') {
-                // Misafir sadece harita ve barları görebilir, oturum kapatma butonu açılır
+                // Misafir sadece haritayı ve durum çubuklarını görebilir, ayarlar tamamen gizlenir.
                 cardContainer.style.display = 'none';
                 guestLogout.style.display = 'block';
             } else if (role === 'user') {
-                // Standart kullanıcı ayarları yönetebilir ama güncelleme parametrelerini değiştiremez ve OTA tetikleyemez
-                if (btnSaveVersions) btnSaveVersions.style.display = 'none';
-                if (btnOta) btnOta.style.display = 'none';
-                inputApp.disabled = true;
-                inputFs.disabled = true;
+                // Standart kullanıcı ayarları yapabilir ama sürüm/güncelleme kartını kesinlikle göremez.
+                cardGuncelleme.style.display = 'none';
             } else if (role === 'admin') {
-                // Admin her şeye tam erişebilir
+                // Admin her şeye tam erişebilir.
             }
         }
 
@@ -832,6 +838,13 @@
             var pass = document.getElementById('login-password').value;
             auth.signInWithEmailAndPassword(email, pass).catch(function (error) {
                 document.getElementById('login-error').textContent = "Hata: " + error.message;
+            });
+        }
+
+        // Misafir Giriş İşlevi
+        function loginAsGuest() {
+            auth.signInWithEmailAndPassword("guest@admin.com", "guest1").catch(function (error) {
+                document.getElementById('login-error').textContent = "Misafir Giriş Hatası: " + error.message;
             });
         }
 
@@ -917,7 +930,6 @@
             document.getElementById('lbl-name1').textContent = cihazOzellikleri[1001].isim;
             document.getElementById('lbl-name2').textContent = cihazOzellikleri[1002].isim;
 
-            // Geçmiş tarihleri tarayıp son geçerli günü getiren mekanizma
             database.ref('/cihazGecmisi').once('value', function (snapshot) {
                 var gecmis = snapshot.val();
                 var tarihler = [];
