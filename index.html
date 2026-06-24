@@ -38,7 +38,7 @@
             border-bottom: 2px solid #3498db;
             padding-bottom: 10px;
             text-align: center;
-            margin: 10px 0px 20px 0px;
+            margin: 0px 0px 0px 0px;
         }
 
         #login-container {
@@ -368,11 +368,10 @@
 
         .cihaz-kontrol-paneli label {
             display: block;
-            margin-bottom: 5px;
             font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .cihaz-kontrol-paneli input {
@@ -768,8 +767,8 @@
         var mesafeControl = L.control({ position: 'bottomleft' });
         mesafeControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.style.backgroundColor = 'white';
-            div.style.padding = '8px';
+            div.style.backgroundColor = rgba(255, 255, 255, 0.9);
+            div.style.padding = '6px';
             div.style.borderRadius = '4px';
             div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
             
@@ -1365,12 +1364,13 @@
                 // Düğüm Noktaları Tasarımı: İçi saydam, dışı beyaz halka halka
                 for (var i = 0; i < noktalar.length - 1; i++) {
                     var nodeMarker = L.circleMarker(noktalar[i], {
-                        radius: 4,
-                        fillColor: 'transparent',
+                        radius: 3,
+                        fillColor: '#ffffff',
                         fillOpacity: 0,
-                        color: '#ffffff',
+                        color: '#000000',
                         weight: 2,
-                        opacity: 1
+                        opacity: 1,
+                        fillOpacity: 1
                     });
                     nodeMarker.addTo(map);
                     ozellik.nodeMarkers.push(nodeMarker);
