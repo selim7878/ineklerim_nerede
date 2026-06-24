@@ -767,17 +767,17 @@
         var mesafeControl = L.control({ position: 'bottomleft' });
         mesafeControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.style.backgroundColor = rgba(255, 255, 255, 0.9);
+            div.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
             div.style.padding = '6px';
             div.style.borderRadius = '4px';
             div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
             
             div.innerHTML = `
-                <label style="font-size: 11px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin-bottom: 5px;">
+                <label style="font-size: 11px; display: flex; align-items: center; cursor: pointer; margin-bottom: 5px;">
                     <input type="checkbox" id="mesafeToggle" checked style="margin-right: 6px; cursor: pointer;" />
                     <span style="vertical-align: middle;">Mesafe Göster</span>
                 </label>
-                <label style="font-size: 11px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin: 0;">
+                <label style="font-size: 11px; display: flex; align-items: center; cursor: pointer; margin: 0;">
                     <input type="checkbox" id="autoFitToggle" checked style="margin-right: 6px; cursor: pointer;" />
                     <span style="vertical-align: middle;">Otomatik Odaklanma</span>
                 </label>
