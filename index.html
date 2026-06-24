@@ -66,7 +66,6 @@
         #map {
             height: 400px;
             width: 100%;
-            margin: 20px 0;
             border-radius: 5px;
             border: 1px solid #ddd;
         }
@@ -509,9 +508,11 @@
             </div>
         </div>
 
-        <!-- HARİTA -->
+        <!-- HARİTA BÖLÜMÜ -->
         <div style="position: relative;">
-            <!-- Tarih Seçici Bölümü -->
+            <div id='map'></div>
+            
+            <!-- TARİH SEÇİCİ BÖLÜMÜ (Haritanın Altına Alındı) -->
             <div
                 style="margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                 <label for="filterDate" style="font-weight: bold; color: #2c3e50; font-size: 14px;"><i
@@ -519,10 +520,9 @@
                 <input type="date" id="filterDate"
                     style="padding: 6px 12px; border: 1px solid #3498db; border-radius: 6px; font-weight: bold; color: #2c3e50; outline: none;">
             </div>
-            <div id='map'></div>
         </div>
 
-        <!-- MİSAFİR KULLANICI İÇİN ÇIKIŞ BUTONU (Haritanın altında yer alacak şekilde ayarlandı) -->
+        <!-- MİSAFİR KULLANICI İÇİN ÇIKIŞ BUTONU (Haritanın Altında Konumlandırıldı) -->
         <div id="guest-logout-container" style="display: none; margin: 20px 0; text-align: center;">
             <button class="btn-danger" style="background: #7f8c8d; width: 100%; max-width: 300px; margin: 0 auto; display: flex;" onclick="logoutUser()">
                 <i class="fas fa-sign-out-alt"></i><span class="btn-text"> Oturumu Kapat (Çıkış)</span>
@@ -683,7 +683,7 @@
         var home_lon = cached_lon ? parseFloat(cached_lon) : default_lon;
 
         var viewingDate = ""; 
-        var initialBoundsSet = false; 
+        var autoFitEnabled = true; // Otomatik odaklanma kilidi kontrol değişkeni
 
         var cihazOzellikleri = {
             1001: {
@@ -764,15 +764,25 @@
         };
         cihazKontrol.addTo(map);
 
-        // 3. MESAFE GÖSTER/GİZLE KONTROLÜ (SOL ALT)
+        // 3. HARİTA KONTROL PANELİ (SOL ALT - Mesafe & Otomatik Odaklanma)
         var mesafeControl = L.control({ position: 'bottomleft' });
         mesafeControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
             div.style.backgroundColor = 'white';
-            div.style.padding = '6px';
+            div.style.padding = '8px';
             div.style.borderRadius = '4px';
             div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
-            div.innerHTML = '<label style="font-size: 12px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin: 0;"><input type="checkbox" id="mesafeToggle" checked style="margin-right: 6px; cursor: pointer;" /><span style="vertical-align: middle;">Mesafe Göster</span></label>';
+            
+            div.innerHTML = `
+                <label style="font-size: 11px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin-bottom: 5px;">
+                    <input type="checkbox" id="mesafeToggle" checked style="margin-right: 6px; cursor: pointer;" />
+                    <span style="vertical-align: middle;">Mesafe Göster</span>
+                </label>
+                <label style="font-size: 11px; font-weight: bold; display: flex; align-items: center; cursor: pointer; margin: 0;">
+                    <input type="checkbox" id="autoFitToggle" checked style="margin-right: 6px; cursor: pointer;" />
+                    <span style="vertical-align: middle;">Otomatik Odaklanma</span>
+                </label>
+            `;
             L.DomEvent.disableClickPropagation(div);
             return div;
         };
@@ -813,7 +823,6 @@
             var cardYonetim = document.getElementById('card-yonetim');
             var cardGuncelleme = document.getElementById('card-guncelleme');
 
-            // Görünürlük ayarlarını sıfırlama
             cardContainer.style.display = 'grid';
             cardModlar.style.display = 'block';
             cardIsimler.style.display = 'block';
@@ -823,14 +832,10 @@
             guestLogout.style.display = 'none';
 
             if (role === 'guest') {
-                // Misafir sadece haritayı ve durum çubuklarını görebilir, ayarlar tamamen gizlenir.
                 cardContainer.style.display = 'none';
                 guestLogout.style.display = 'block';
             } else if (role === 'user') {
-                // Standart kullanıcı ayarları yapabilir ama sürüm/güncelleme kartını kesinlikle göremez.
                 cardGuncelleme.style.display = 'none';
-            } else if (role === 'admin') {
-                // Admin her şeye tam erişebilir.
             }
         }
 
@@ -842,7 +847,6 @@
             });
         }
 
-        // Misafir Giriş İşlevi
         function loginAsGuest() {
             auth.signInWithEmailAndPassword("guest@admin.com", "guest1").catch(function (error) {
                 document.getElementById('login-error').textContent = "Misafir Giriş Hatası: " + error.message;
@@ -959,7 +963,6 @@
 
                 datePicker.addEventListener('change', function () {
                     viewingDate = this.value;
-                    initialBoundsSet = false; 
                     loadHistoryByDate(this.value);
                 });
 
@@ -984,6 +987,7 @@
                             document.getElementById('myLat').value = home_lat;
                             document.getElementById('myLon').value = home_lon;
                             updateUserMarker(home_lat, home_lon);
+                            updateMapView(true); // Gerçek veri gelince haritayı baştan ortala
                         }
                     }
                     if (val.isimler) {
@@ -1042,6 +1046,7 @@
                             updateDeviceInfo(cihazNo, data);
                             if (viewingDate === todayStr) {
                                 updateMapMarker(cihazNo, data.enlem, data.boylam);
+                                updateMapView(true); // Canlı veri eklendiğinde haritayı yaklaştır
                             }
                         }
                     });
@@ -1120,6 +1125,7 @@
                             removeCihazMapElements(cihazNo);
                         }
                     }
+                    updateMapView(true); // Tarih değişiminde veya geçmiş yükleniminde haritayı ortala
                 });
             });
         }
@@ -1205,7 +1211,15 @@
                                 map.removeLayer(cihazOzellikleri[no].polyline);
                                 cihazOzellikleri[no].polyline = null;
                             }
+                            // Geçmiş izler silindiğinde haritadaki halka düğümleri de anında kaldırıyoruz
+                            if (cihazOzellikleri[no].nodeMarkers) {
+                                cihazOzellikleri[no].nodeMarkers.forEach(function(m) {
+                                    map.removeLayer(m);
+                                });
+                                cihazOzellikleri[no].nodeMarkers = [];
+                            }
                         });
+                        updateMapView(true); // Tüm veriler temizlenince haritayı tekrar hizala
                     })
                     .catch(function (err) { showStatus("Hata: " + err.message, "error"); });
             }
@@ -1294,7 +1308,8 @@
         }
 
         function updateMapView(force) {
-            if (!force && initialBoundsSet) return;
+            // Eğer otomatik odaklanma devre dışı bırakılmışsa ve dışarıdan zorlanmamışsa (force) kamera kaydırma yapma
+            if (!autoFitEnabled && !force) return;
 
             var bounds = L.latLngBounds([]);
             var activeElements = false;
@@ -1318,7 +1333,6 @@
 
             if (activeElements && bounds.isValid()) {
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
-                initialBoundsSet = true;
             }
         }
 
@@ -1348,14 +1362,15 @@
             if (cihazGosteriliyor) {
                 ozellik.polyline.addTo(map);
 
+                // Düğüm Noktaları Tasarımı: İçi saydam, dışı beyaz halka halka
                 for (var i = 0; i < noktalar.length - 1; i++) {
                     var nodeMarker = L.circleMarker(noktalar[i], {
-                        radius: 4,
-                        fillColor: '#ffffff',
-                        color: '#000000',
+                        radius: 5,
+                        fillColor: 'transparent',
+                        fillOpacity: 0,
+                        color: '#ffffff',
                         weight: 2,
-                        opacity: 1,
-                        fillOpacity: 1
+                        opacity: 1
                     });
                     nodeMarker.addTo(map);
                     ozellik.nodeMarkers.push(nodeMarker);
@@ -1411,6 +1426,7 @@
             setTimeout(function () { statusElement.style.display = "none"; }, 4000);
         }
 
+        // Toggles & Checkboxes Listener Yapısı
         document.addEventListener('change', function (e) {
             if (e.target && e.target.id === 'mesafeToggle') {
                 var goster = e.target.checked;
@@ -1430,6 +1446,14 @@
                         }
                     }
                 });
+            }
+
+            // Önerilen Otomatik Odaklanma Seçici Listener'ı
+            if (e.target && e.target.id === 'autoFitToggle') {
+                autoFitEnabled = e.target.checked;
+                if (autoFitEnabled) {
+                    updateMapView(true); // Aktif edildiği an haritayı hemen hizala
+                }
             }
         });
     </script>
