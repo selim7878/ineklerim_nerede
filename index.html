@@ -35,10 +35,8 @@
 
         h1 {
             color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
             text-align: center;
-            margin: 0px 0px 0px 0px;
+            margin: 0px;
         }
 
         #login-container {
@@ -316,7 +314,7 @@
             top: 10px;
             right: 10px;
             z-index: 1000;
-            background: white;
+            background: rgba(255, 255, 255, 0.8);
             padding: 5px;
             border-radius: 4px;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
@@ -360,7 +358,7 @@
         }
 
         .cihaz-kontrol-paneli {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 8px;
             border-radius: 5px;
             box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
@@ -767,7 +765,7 @@
         var mesafeControl = L.control({ position: 'bottomleft' });
         mesafeControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+            div.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             div.style.padding = '6px';
             div.style.borderRadius = '4px';
             div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)';
