@@ -68,6 +68,32 @@
             border: 1px solid #ddd;
         }
 
+        /* Tam Ekran Modu CSS Kuralları */
+        #map:fullscreen {
+            width: 100% !important;
+            height: 100% !important;
+            border: none;
+            border-radius: 0;
+        }
+        #map:-webkit-full-screen {
+            width: 100% !important;
+            height: 100% !important;
+            border: none;
+            border-radius: 0;
+        }
+        #map:-moz-full-screen {
+            width: 100% !important;
+            height: 100% !important;
+            border: none;
+            border-radius: 0;
+        }
+        #map:-ms-fullscreen {
+            width: 100% !important;
+            height: 100% !important;
+            border: none;
+            border-radius: 0;
+        }
+
         .leaflet-tooltip.distance-label {
             background-color: rgba(255, 255, 255, 0.9);
             border: 1px solid #3498db;
@@ -337,6 +363,11 @@
 
         .map-controls button:hover {
             background: #2980b9;
+        }
+
+        /* Tam ekran butonuna özel küçük genişlik ayarı */
+        .map-controls button#btn-fullscreen {
+            width: 35px;
         }
 
         .status-message {
@@ -717,11 +748,14 @@
             iconSize: [30, 30]
         });
 
-        // 1. HARİTA STİLİ KONTROLÜ (SAĞ ÜST)
+        // 1. HARİTA KONTROLLERİ (SAĞ ÜST) - Sokak, Uydu ve Tam Ekran Butonları
         var haritaStiliControl = L.control({ position: 'topright' });
         haritaStiliControl.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'map-controls');
-            div.innerHTML = '<button onclick="changeMapStyle(\'streets\')">Sokak</button><button onclick="changeMapStyle(\'satellite\')">Uydu</button>';
+            div.innerHTML = 
+                '<button onclick="changeMapStyle(\'streets\')">Sokak</button>' +
+                '<button onclick="changeMapStyle(\'satellite\')">Uydu</button>' +
+                '<button onclick="toggleFullscreen()" id="btn-fullscreen" title="Tam Ekran"><i class="fas fa-expand"></i></button>';
             L.DomEvent.disableClickPropagation(div);
             return div;
         };
@@ -784,6 +818,62 @@
             return div;
         };
         mesafeControl.addTo(map);
+
+        // --- TAM EKRAN GEÇİŞ FONKSİYONLARI ---
+        function toggleFullscreen() {
+            var mapElement = document.getElementById('map');
+            
+            if (!document.fullscreenElement && 
+                !document.mozFullScreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.msFullscreenElement) {
+                
+                if (mapElement.requestFullscreen) {
+                    mapElement.requestFullscreen();
+                } else if (mapElement.msRequestFullscreen) {
+                    mapElement.msRequestFullscreen();
+                } else if (mapElement.mozRequestFullScreen) {
+                    mapElement.mozRequestFullScreen();
+                } else if (mapElement.webkitRequestFullscreen) {
+                    mapElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        function onFullscreenChange() {
+            var btn = document.getElementById('btn-fullscreen');
+            var isFullscreen = document.fullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.msFullscreenElement;
+            
+            if (isFullscreen) {
+                if (btn) btn.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+                if (btn) btn.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+            
+            // Harita boyutlarının yeniden hesaplanması için kısa bir gecikme ekliyoruz
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 150);
+        }
+
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        document.addEventListener('mozfullscreenchange', onFullscreenChange);
+        document.addEventListener('MSFullscreenChange', onFullscreenChange);
+
 
         // --- 2. GİRİŞ VE OTURUM KONTROLÜ ---
         auth.onAuthStateChanged(function (user) {
@@ -984,7 +1074,7 @@
                             document.getElementById('myLat').value = home_lat;
                             document.getElementById('myLon').value = home_lon;
                             updateUserMarker(home_lat, home_lon);
-                            updateMapView(true); // Gerçek veri gelince haritayı baştan ortala
+                            updateMapView(true); 
                         }
                     }
                     if (val.isimler) {
@@ -1043,7 +1133,7 @@
                             updateDeviceInfo(cihazNo, data);
                             if (viewingDate === todayStr) {
                                 updateMapMarker(cihazNo, data.enlem, data.boylam);
-                                updateMapView(true); // Canlı veri eklendiğinde haritayı yaklaştır
+                                updateMapView(true); 
                             }
                         }
                     });
@@ -1122,7 +1212,7 @@
                             removeCihazMapElements(cihazNo);
                         }
                     }
-                    updateMapView(true); // Tarih değişiminde veya geçmiş yükleniminde haritayı ortala
+                    updateMapView(true); 
                 });
             });
         }
@@ -1208,7 +1298,6 @@
                                 map.removeLayer(cihazOzellikleri[no].polyline);
                                 cihazOzellikleri[no].polyline = null;
                             }
-                            // Geçmiş izler silindiğinde haritadaki halka düğümleri de anında kaldırıyoruz
                             if (cihazOzellikleri[no].nodeMarkers) {
                                 cihazOzellikleri[no].nodeMarkers.forEach(function(m) {
                                     map.removeLayer(m);
@@ -1216,7 +1305,7 @@
                                 cihazOzellikleri[no].nodeMarkers = [];
                             }
                         });
-                        updateMapView(true); // Tüm veriler temizlenince haritayı tekrar hizala
+                        updateMapView(true); 
                     })
                     .catch(function (err) { showStatus("Hata: " + err.message, "error"); });
             }
@@ -1305,7 +1394,6 @@
         }
 
         function updateMapView(force) {
-            // Eğer otomatik odaklanma devre dışı bırakılmışsa ve dışarıdan zorlanmamışsa (force) kamera kaydırma yapma
             if (!autoFitEnabled && !force) return;
 
             var bounds = L.latLngBounds([]);
@@ -1353,7 +1441,6 @@
                 smoothFactor: 1
             });
             
-            // Düğüm noktaları nesneleri HER ZAMAN oluşturulur (checkbox durumundan bağımsız)
             for (var i = 0; i < noktalar.length - 1; i++) {
                 var nodeMarker = L.circleMarker(noktalar[i], {
                     radius: 3,
@@ -1366,7 +1453,6 @@
                 ozellik.nodeMarkers.push(nodeMarker);
             }
             
-            // Haritaya eklenmesi checkbox durumuna bağlıdır
             var cihazGosteriliyor = document.getElementById('cihaz_goster_' + cihazNo) ? 
                 document.getElementById('cihaz_goster_' + cihazNo).checked : false;
             
@@ -1448,11 +1534,10 @@
                 });
             }
 
-            // Önerilen Otomatik Odaklanma Seçici Listener'ı
             if (e.target && e.target.id === 'autoFitToggle') {
                 autoFitEnabled = e.target.checked;
                 if (autoFitEnabled) {
-                    updateMapView(true); // Aktif edildiği an haritayı hemen hizala
+                    updateMapView(true); 
                 }
             }
         });
